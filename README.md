@@ -126,12 +126,24 @@ The API will be available at `http://localhost:8000`
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 
+## Architecture :
+
+
 ![img_1.png](img_1.png)
 
 
 
 
-## Future Work
+
+## 📈 Future Roadmap
+
+- [ ] Multi-cloud support (AWS, Azure, GCP)
+- [ ] Automated cost optimization recommendations
+- [ ] Team-based access control
+- [ ] Custom report generation
+- [ ] Integration with CI/CD pipelines
+- 
+## Future Work :
 
 
 ![img_2.png](img_2.png)
