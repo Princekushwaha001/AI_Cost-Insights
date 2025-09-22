@@ -2597,1013 +2597,1013 @@ def display_friendly_response(response_data):
 #     main()
 
 
-# # !/usr/bin/env python3
-# """
-# Enhanced Terminal RAG System - With Comprehensive Query Support
-# """
-#
-# import os
-# import sys
-# import logging
-# import re
-# from pathlib import Path
-# from collections import defaultdict
-#
-# # Import your existing modules
-# from app.services.embedder import query_knn, embed_all_and_store
-# # from backend.prompts import build_simple_prompt, get_human_friendly_examples
+# !/usr/bin/env python3
+"""
+Enhanced Terminal RAG System - With Comprehensive Query Support
+"""
+
+import os
+import sys
+import logging
+import re
+from pathlib import Path
+from collections import defaultdict
+
+# Import your existing modules
+from app.services.embedder import query_knn, embed_all_and_store
+# from backend.prompts import build_simple_prompt, get_human_friendly_examples
 # from backend.prompts import build_simple_prompt, get_enhanced_examples
-#
-#
-# # Add database imports
-# from sqlalchemy import select, distinct, func
-# from app.db.base import SessionLocal
-# from app.db import models
-#
-# # Configure logging to reduce noise in terminal
-# logging.basicConfig(level=logging.WARNING)
-# logger = logging.getLogger(__name__)
-#
-#
-# def get_comprehensive_billing_data(filters=None):
-#     """Get comprehensive billing data from database with filters"""
-#     try:
-#         session = SessionLocal()
-#         query = select(models.Billing)
-#
-#         if filters:
-#             if filters.get('service'):
-#                 query = query.where(models.Billing.service.ilike(f"%{filters['service']}%"))
-#             if filters.get('account_id'):
-#                 query = query.where(models.Billing.account_id == filters['account_id'])
-#             if filters.get('resource_id'):
-#                 query = query.where(models.Billing.resource_id == filters['resource_id'])
-#             if filters.get('month'):
-#                 query = query.where(models.Billing.invoice_month == filters['month'])
-#             if filters.get('year'):
-#                 query = query.where(models.Billing.invoice_month.like(f"{filters['year']}%"))
-#
-#         billing_rows = session.execute(query).scalars().all()
-#         session.close()
-#
-#         # Convert to dictionary format
-#         billing_data = []
-#         for row in billing_rows:
-#             billing_data.append({
-#                 'invoice_month': getattr(row, 'invoice_month', ''),
-#                 'account_id': getattr(row, 'account_id', ''),
-#                 'subscription': getattr(row, 'subscription', ''),
-#                 'service': getattr(row, 'service', ''),
-#                 'resource_group': getattr(row, 'resource_group', ''),
-#                 'resource_id': getattr(row, 'resource_id', ''),
-#                 'region': getattr(row, 'region', ''),
-#                 'usage_qty': getattr(row, 'usage_qty', 0),
-#                 'unit_cost': getattr(row, 'unit_cost', 0),
-#                 'cost': getattr(row, 'cost', 0)
-#             })
-#
-#         return billing_data
-#     except Exception as e:
-#         logger.error(f"Error getting billing data: {e}")
-#         return []
-#
-#
-# def classify_query(question):
-#     """Enhanced query classification with more patterns"""
-#     question_lower = question.lower().strip()
-#
-#     # Greeting patterns
-#     greeting_patterns = [
-#         r'^(hi+|hello|hey|good morning|good afternoon|good evening)$',
-#         r'^(ram ram|namaste|namaskar)$',
-#         r'^(hii+|hiii+|hiiii+)$'
-#     ]
-#
-#     # Account-specific patterns
-#     account_patterns = [
-#         r'account.*acct-[a-f0-9]+',
-#         r'acct-[a-f0-9]+.*details',
-#         r'acct-[a-f0-9]+.*cost',
-#         r'acct-[a-f0-9]+.*service',
-#         r'how.*many.*services.*account',
-#         r'account.*spending',
-#         r'account.*breakdown'
-#     ]
-#
-#     # Resource-specific patterns
-#     resource_patterns = [
-#         r'resource.*res-[a-f0-9]+',
-#         r'res-[a-f0-9]+.*service',
-#         r'res-[a-f0-9]+.*cost',
-#         r'res-[a-f0-9]+.*belong',
-#         r'resource.*belong.*service'
-#     ]
-#
-#     # Service listing patterns
-#     service_list_patterns = [
-#         r'list.*services?',
-#         r'show.*services?',
-#         r'all.*services?',
-#         r'what.*services?',
-#         r'services?.*we.*use',
-#         r'services?.*names?',
-#         r'services?.*available'
-#     ]
-#
-#     # Monthly breakdown patterns
-#     monthly_breakdown_patterns = [
-#         r'each.*month.*separately',
-#         r'month.*separately',
-#         r'monthly.*breakdown',
-#         r'cost.*each.*month',
-#         r'service.*each.*month',
-#         r'monthly.*cost',
-#         r'breakdown.*month'
-#     ]
-#
-#     # Count/statistics patterns
-#     count_patterns = [
-#         r'how.*many.*account',
-#         r'how.*many.*resource',
-#         r'how.*many.*service',
-#         r'count.*account',
-#         r'count.*resource',
-#         r'unique.*account',
-#         r'total.*account'
-#     ]
-#
-#     # Nonsensical/unclear patterns
-#     unclear_patterns = [
-#         r'^(what\??|huh\??|eh\??|\?\?+)$',
-#         r'^(hmm+|um+|uh+)$',
-#         r'^(\?+|\.+|\!+)$',
-#         r'^(lee|ok|yes|no)$'
-#     ]
-#
-#     # Financial/cost-related keywords
-#     financial_keywords = [
-#         'cost', 'price', 'spend', 'expense', 'bill', 'charge', 'money', 'dollar',
-#         'invoice', 'month', '2025', 'total', 'how much', 'budget', 'unit_cost'
-#     ]
-#
-#     # Check for greetings
-#     for pattern in greeting_patterns:
-#         if re.match(pattern, question_lower):
-#             return 'greeting'
-#
-#     # Check for account queries
-#     for pattern in account_patterns:
-#         if re.search(pattern, question_lower):
-#             return 'account_query'
-#
-#     # Check for resource queries
-#     for pattern in resource_patterns:
-#         if re.search(pattern, question_lower):
-#             return 'resource_query'
-#
-#     # Check for count queries
-#     for pattern in count_patterns:
-#         if re.search(pattern, question_lower):
-#             return 'count_query'
-#
-#     # Check for monthly breakdown
-#     for pattern in monthly_breakdown_patterns:
-#         if re.search(pattern, question_lower):
-#             return 'monthly_breakdown'
-#
-#     # Check for service listing requests
-#     for pattern in service_list_patterns:
-#         if re.search(pattern, question_lower):
-#             return 'service_list'
-#
-#     # Check for unclear/nonsensical queries
-#     for pattern in unclear_patterns:
-#         if re.match(pattern, question_lower):
-#             return 'unclear'
-#
-#     # Check for financial keywords
-#     has_financial_keywords = any(keyword in question_lower for keyword in financial_keywords)
-#     has_time_reference = bool(re.search(
-#         r'(2025|january|february|march|april|may|june|july|august|september|october|november|december|\d{4}-\d{2})',
-#         question_lower))
-#
-#     # Financial query if it has financial keywords or time references with context
-#     if has_financial_keywords or (has_time_reference and len(question.split()) > 2):
-#         return 'financial'
-#
-#     return 'unclear'
-#
-#
-# def extract_account_id(question):
-#     """Extract account ID from question"""
-#     match = re.search(r'acct-([a-f0-9]+)', question.lower())
-#     return f"acct-{match.group(1)}" if match else None
-#
-#
-# def extract_resource_id(question):
-#     """Extract resource ID from question"""
-#     match = re.search(r'res-([a-f0-9]+)', question.lower())
-#     return f"res-{match.group(1)}" if match else None
-#
-#
-# def extract_service_filter(question):
-#     """Extract specific service mentioned in the question"""
-#     question_lower = question.lower()
-#
-#     # Direct service name matches
-#     if 'ai' in question_lower:
-#         return 'AI'
-#     elif 'compute' in question_lower:
-#         return 'Compute'
-#     elif 'storage' in question_lower:
-#         return 'Storage'
-#     elif 'database' in question_lower or ' db ' in question_lower:
-#         return 'DB'
-#     elif 'network' in question_lower:
-#         return 'Networking'
-#
-#     return None
-#
-#
-# def extract_time_filter(question):
-#     """Extract specific time period mentioned in the question"""
-#     question_lower = question.lower()
-#
-#     # Look for year patterns
-#     if 'year 2025' in question_lower or '2025 year' in question_lower:
-#         return 'year_2025'
-#
-#     # Look for specific months
-#     month_match = re.search(r'2025-(\d{2})', question)
-#     if month_match:
-#         return f"2025-{month_match.group(1)}"
-#
-#     # Look for month names
-#     months = {
-#         'january': '2025-01', 'february': '2025-02', 'march': '2025-03',
-#         'april': '2025-04', 'may': '2025-05', 'june': '2025-06',
-#         'july': '2025-07', 'august': '2025-08', 'september': '2025-09',
-#         'october': '2025-10', 'november': '2025-11', 'december': '2025-12'
-#     }
-#
-#     for month_name, month_code in months.items():
-#         if month_name in question_lower or month_name[:3] in question_lower:
-#             return month_code
-#
-#     return None
-#
-#
-# def handle_account_query(question):
-#     """Handle account-specific queries"""
-#     account_id = extract_account_id(question)
-#
-#     if not account_id:
-#         return {
-#             'type': 'account_query',
-#             'response': "I couldn't find a valid account ID in your question. Please use format like 'acct-1234' or ask about a specific account ID."
-#         }
-#
-#     # Get all data for this account
-#     billing_data = get_comprehensive_billing_data({'account_id': account_id})
-#
-#     if not billing_data:
-#         return {
-#             'type': 'account_query',
-#             'response': f"No billing records found for account {account_id}. This account might not exist in your data or has no charges."
-#         }
-#
-#     # Analyze the data
-#     total_cost = sum(float(item['cost']) for item in billing_data)
-#     unique_services = set(item['service'] for item in billing_data if item['service'])
-#     unique_months = set(item['invoice_month'] for item in billing_data if item['invoice_month'])
-#     total_transactions = len(billing_data)
-#
-#     # Service breakdown
-#     service_costs = {}
-#     for item in billing_data:
-#         service = item['service']
-#         cost = float(item['cost'])
-#         if service in service_costs:
-#             service_costs[service] += cost
-#         else:
-#             service_costs[service] = cost
-#
-#     # Generate response
-#     response = f"Account {account_id} Details:\n\n"
-#     response += f"💰 Total Spending: ${total_cost:,.2f}\n"
-#     response += f"📊 Total Transactions: {total_transactions}\n"
-#     response += f"🔧 Unique Services Used: {len(unique_services)}\n"
-#     response += f"📅 Active Months: {len(unique_months)}\n\n"
-#
-#     if service_costs:
-#         response += "Service Breakdown:\n"
-#         sorted_services = sorted(service_costs.items(), key=lambda x: x[1], reverse=True)
-#         for service, cost in sorted_services:
-#             percentage = (cost / total_cost) * 100
-#             response += f"• {service}: ${cost:,.2f} ({percentage:.1f}%)\n"
-#
-#     if len(unique_months) > 1:
-#         month_costs = {}
-#         for item in billing_data:
-#             month = item['invoice_month']
-#             cost = float(item['cost'])
-#             if month in month_costs:
-#                 month_costs[month] += cost
-#             else:
-#                 month_costs[month] = cost
-#
-#         response += f"\nMonthly Breakdown:\n"
-#         for month in sorted(month_costs.keys()):
-#             response += f"• {get_month_name(month)}: ${month_costs[month]:,.2f}\n"
-#
-#     return {
-#         'type': 'account_query',
-#         'response': response,
-#         'account_id': account_id,
-#         'billing_data': billing_data
-#     }
-#
-#
-# def handle_resource_query(question):
-#     """Handle resource-specific queries"""
-#     resource_id = extract_resource_id(question)
-#
-#     if not resource_id:
-#         return {
-#             'type': 'resource_query',
-#             'response': "I couldn't find a valid resource ID in your question. Please use format like 'res-abc123' or ask about a specific resource ID."
-#         }
-#
-#     # Get all data for this resource
-#     billing_data = get_comprehensive_billing_data({'resource_id': resource_id})
-#
-#     if not billing_data:
-#         return {
-#             'type': 'resource_query',
-#             'response': f"No billing records found for resource {resource_id}. This resource might not exist in your data or has no charges."
-#         }
-#
-#     # Analyze the data
-#     resource_info = billing_data[0]  # Get first record for basic info
-#     total_cost = sum(float(item['cost']) for item in billing_data)
-#     service = resource_info['service']
-#     region = resource_info['region']
-#     resource_group = resource_info['resource_group']
-#
-#     response = f"Resource {resource_id} Details:\n\n"
-#     response += f"🔧 Service: {service}\n"
-#     response += f"📍 Region: {region}\n"
-#     response += f"📁 Resource Group: {resource_group}\n"
-#     response += f"💰 Total Cost: ${total_cost:,.2f}\n"
-#     response += f"📊 Total Transactions: {len(billing_data)}\n\n"
-#
-#     # Monthly breakdown if multiple months
-#     month_costs = {}
-#     for item in billing_data:
-#         month = item['invoice_month']
-#         cost = float(item['cost'])
-#         usage = float(item['usage_qty']) if item['usage_qty'] else 0
-#         unit_cost = float(item['unit_cost']) if item['unit_cost'] else 0
-#
-#         if month not in month_costs:
-#             month_costs[month] = {'cost': 0, 'usage': 0, 'unit_cost': unit_cost}
-#         month_costs[month]['cost'] += cost
-#         month_costs[month]['usage'] += usage
-#
-#     if len(month_costs) > 1:
-#         response += "Monthly Usage & Costs:\n"
-#         for month in sorted(month_costs.keys()):
-#             data = month_costs[month]
-#             response += f"• {get_month_name(month)}: ${data['cost']:,.2f}"
-#             if data['usage'] > 0:
-#                 response += f" (Usage: {data['usage']:,.2f} units)"
-#             if data['unit_cost'] > 0:
-#                 response += f" (Unit Cost: ${data['unit_cost']:,.4f})"
-#             response += f"\n"
-#
-#     return {
-#         'type': 'resource_query',
-#         'response': response,
-#         'resource_id': resource_id,
-#         'billing_data': billing_data
-#     }
-#
-#
-# def handle_count_query(question):
-#     """Handle count/statistics queries"""
-#     question_lower = question.lower()
-#
-#     if 'account' in question_lower:
-#         # Count unique accounts
-#         try:
-#             session = SessionLocal()
-#             account_count = session.execute(
-#                 select(func.count(distinct(models.Billing.account_id)))
-#             ).scalar()
-#             session.close()
-#
-#             return {
-#                 'type': 'count_query',
-#                 'response': f"Total unique accounts in your data: {account_count}"
-#             }
-#         except Exception as e:
-#             return {
-#                 'type': 'count_query',
-#                 'response': f"Error counting accounts: {e}"
-#             }
-#
-#     elif 'resource' in question_lower:
-#         # Count unique resources
-#         try:
-#             session = SessionLocal()
-#             resource_count = session.execute(
-#                 select(func.count(distinct(models.Billing.resource_id)))
-#             ).scalar()
-#             session.close()
-#
-#             return {
-#                 'type': 'count_query',
-#                 'response': f"Total unique resources in your data: {resource_count}"
-#             }
-#         except Exception as e:
-#             return {
-#                 'type': 'count_query',
-#                 'response': f"Error counting resources: {e}"
-#             }
-#
-#     elif 'service' in question_lower:
-#         # Count unique services
-#         try:
-#             session = SessionLocal()
-#             service_count = session.execute(
-#                 select(func.count(distinct(models.Billing.service)))
-#             ).scalar()
-#             session.close()
-#
-#             return {
-#                 'type': 'count_query',
-#                 'response': f"Total unique services in your data: {service_count}"
-#             }
-#         except Exception as e:
-#             return {
-#                 'type': 'count_query',
-#                 'response': f"Error counting services: {e}"
-#             }
-#
-#     return {
-#         'type': 'count_query',
-#         'response': "I can count accounts, resources, or services. Try: 'How many unique accounts are there?'"
-#     }
-#
-#
-# def handle_monthly_breakdown(question):
-#     """Handle monthly breakdown queries"""
-#     service_filter = extract_service_filter(question)
-#
-#     filters = {}
-#     if service_filter:
-#         filters['service'] = service_filter
-#
-#     billing_data = get_comprehensive_billing_data(filters)
-#
-#     if not billing_data:
-#         service_text = f" for {service_filter}" if service_filter else ""
-#         return {
-#             'type': 'monthly_breakdown',
-#             'response': f"No billing data found{service_text}. Make sure your data has been processed."
-#         }
-#
-#     # Group by month
-#     monthly_data = {}
-#     total_cost = 0
-#
-#     for item in billing_data:
-#         month = item['invoice_month']
-#         cost = float(item['cost'])
-#         usage = float(item['usage_qty']) if item['usage_qty'] else 0
-#         unit_cost = float(item['unit_cost']) if item['unit_cost'] else 0
-#
-#         if month not in monthly_data:
-#             monthly_data[month] = {
-#                 'cost': 0,
-#                 'usage': 0,
-#                 'transactions': 0,
-#                 'avg_unit_cost': 0,
-#                 'unit_costs': []
-#             }
-#
-#         monthly_data[month]['cost'] += cost
-#         monthly_data[month]['usage'] += usage
-#         monthly_data[month]['transactions'] += 1
-#         if unit_cost > 0:
-#             monthly_data[month]['unit_costs'].append(unit_cost)
-#
-#         total_cost += cost
-#
-#     # Calculate averages
-#     for month_data in monthly_data.values():
-#         if month_data['unit_costs']:
-#             month_data['avg_unit_cost'] = sum(month_data['unit_costs']) / len(month_data['unit_costs'])
-#
-#     service_text = f" for {service_filter} service" if service_filter else ""
-#     response = f"Monthly Breakdown{service_text}:\n\n"
-#     response += f"Total Cost: ${total_cost:,.2f}\n\n"
-#
-#     for month in sorted(monthly_data.keys()):
-#         data = monthly_data[month]
-#         percentage = (data['cost'] / total_cost) * 100
-#
-#         response += f"📅 {get_month_name(month)}:\n"
-#         response += f"   💰 Cost: ${data['cost']:,.2f} ({percentage:.1f}% of total)\n"
-#         response += f"   📊 Transactions: {data['transactions']}\n"
-#
-#         if data['usage'] > 0:
-#             response += f"   📈 Usage: {data['usage']:,.2f} units\n"
-#
-#         if data['avg_unit_cost'] > 0:
-#             response += f"   💵 Avg Unit Cost: ${data['avg_unit_cost']:,.4f}\n"
-#
-#         response += f"\n"
-#
-#     return {
-#         'type': 'monthly_breakdown',
-#         'response': response,
-#         'monthly_data': monthly_data,
-#         'service_filter': service_filter
-#     }
-#
-#
-# def handle_service_list_query(question):
-#     """Handle requests for listing services"""
-#     question_lower = question.lower()
-#
-#     # Check if user wants just names (no costs)
-#     wants_names_only = any(phrase in question_lower for phrase in [
-#         'just names', 'only names', 'service names', 'name not', 'not cost', 'not percentage',
-#         'without cost', 'without percentage', 'names only', 'list names'
-#     ])
-#
-#     if wants_names_only:
-#         try:
-#             session = SessionLocal()
-#             services = session.execute(
-#                 select(distinct(models.Billing.service))
-#                 .where(models.Billing.service.isnot(None))
-#             ).scalars().all()
-#             session.close()
-#
-#             if not services:
-#                 return {
-#                     'type': 'service_list',
-#                     'response': "I couldn't find any services in your database."
-#                 }
-#
-#             services = sorted([service for service in services if service and service.strip()])
-#
-#             response = f"Here are all the cloud services you've used:\n\n"
-#             for i, service in enumerate(services, 1):
-#                 response += f"{i}. {service}\n"
-#
-#             response += f"\nTotal: {len(services)} different services found in your records."
-#
-#             return {
-#                 'type': 'service_list',
-#                 'response': response,
-#                 'services': services
-#             }
-#         except Exception as e:
-#             return {
-#                 'type': 'service_list',
-#                 'response': f"Error retrieving services: {e}"
-#             }
-#
-#     else:
-#         # Get comprehensive service summary
-#         billing_data = get_comprehensive_billing_data()
-#
-#         if not billing_data:
-#             return {
-#                 'type': 'service_list',
-#                 'response': "I couldn't find any service data in your database."
-#             }
-#
-#         service_summary = {}
-#         total_cost = 0
-#
-#         for item in billing_data:
-#             service = item['service']
-#             cost = float(item['cost'])
-#             month = item['invoice_month']
-#
-#             if service not in service_summary:
-#                 service_summary[service] = {
-#                     'total_cost': 0,
-#                     'transaction_count': 0,
-#                     'months': set()
-#                 }
-#
-#             service_summary[service]['total_cost'] += cost
-#             service_summary[service]['transaction_count'] += 1
-#             service_summary[service]['months'].add(month)
-#             total_cost += cost
-#
-#         # Sort services by total cost (descending)
-#         sorted_services = sorted(service_summary.items(), key=lambda x: x[1]['total_cost'], reverse=True)
-#
-#         response = f"Here are all the cloud services you've used with their details:\n\n"
-#
-#         for i, (service, data) in enumerate(sorted_services, 1):
-#             percentage = (data['total_cost'] / total_cost) * 100 if total_cost > 0 else 0
-#             months_count = len(data['months'])
-#
-#             response += f"{i}. {service}\n"
-#             response += f"   • Total spent: ${data['total_cost']:,.2f} ({percentage:.1f}% of all spending)\n"
-#             response += f"   • Transactions: {data['transaction_count']}\n"
-#             response += f"   • Active in {months_count} month{'s' if months_count != 1 else ''}\n\n"
-#
-#         response += f"Summary: {len(sorted_services)} different services, ${total_cost:,.2f} total spending"
-#
-#         return {
-#             'type': 'service_list_detailed',
-#             'response': response,
-#             'service_data': service_summary,
-#             'total_cost': total_cost
-#         }
-#
-#
-# def handle_financial_query(question):
-#     """Handle financial queries with comprehensive data"""
-#     service_filter = extract_service_filter(question)
-#     time_filter = extract_time_filter(question)
-#     account_id = extract_account_id(question)
-#     resource_id = extract_resource_id(question)
-#
-#     # Build filters
-#     filters = {}
-#     if service_filter:
-#         filters['service'] = service_filter
-#     if time_filter:
-#         if time_filter == 'year_2025':
-#             filters['year'] = '2025'
-#         else:
-#             filters['month'] = time_filter
-#     if account_id:
-#         filters['account_id'] = account_id
-#     if resource_id:
-#         filters['resource_id'] = resource_id
-#
-#     # Get comprehensive data
-#     billing_data = get_comprehensive_billing_data(filters)
-#
-#     if not billing_data:
-#         return {
-#             'type': 'financial',
-#             'response': "I couldn't find any billing data matching your criteria. Please check your filters and try again."
-#         }
-#
-#     # Generate comprehensive response
-#     total_cost = sum(float(item['cost']) for item in billing_data)
-#     transaction_count = len(billing_data)
-#
-#     response_parts = []
-#
-#     # Main summary
-#     filter_description = []
-#     if service_filter:
-#         filter_description.append(f"{service_filter} service")
-#     if time_filter:
-#         if time_filter == 'year_2025':
-#             filter_description.append("in 2025")
-#         else:
-#             filter_description.append(f"in {get_month_name(time_filter)}")
-#     if account_id:
-#         filter_description.append(f"for account {account_id}")
-#     if resource_id:
-#         filter_description.append(f"for resource {resource_id}")
-#
-#     filter_text = " ".join(filter_description) if filter_description else ""
-#
-#     response_parts.append(
-#         f"Found {transaction_count} transactions{' ' + filter_text if filter_text else ''} totaling ${total_cost:,.2f}.")
-#
-#     # Service breakdown (if not filtered by service)
-#     if not service_filter:
-#         services = {}
-#         for item in billing_data:
-#             service = item['service']
-#             cost = float(item['cost'])
-#             if service in services:
-#                 services[service] += cost
-#             else:
-#                 services[service] = cost
-#
-#         if len(services) > 1:
-#             response_parts.append("Service breakdown:")
-#             sorted_services = sorted(services.items(), key=lambda x: x[1], reverse=True)
-#             for service, cost in sorted_services[:5]:
-#                 percentage = (cost / total_cost) * 100
-#                 response_parts.append(f"• {service}: ${cost:,.2f} ({percentage:.1f}%)")
-#
-#     # Monthly breakdown (if not filtered by specific month)
-#     if not time_filter or time_filter == 'year_2025':
-#         months = {}
-#         for item in billing_data:
-#             month = item['invoice_month']
-#             cost = float(item['cost'])
-#             if month in months:
-#                 months[month] += cost
-#             else:
-#                 months[month] = cost
-#
-#         if len(months) > 1:
-#             response_parts.append("Monthly breakdown:")
-#             for month in sorted(months.keys()):
-#                 cost = months[month]
-#                 percentage = (cost / total_cost) * 100
-#                 response_parts.append(f"• {get_month_name(month)}: ${cost:,.2f} ({percentage:.1f}%)")
-#
-#     return {
-#         'type': 'financial',
-#         'response': " ".join(response_parts),
-#         'billing_data': billing_data,
-#         'filters': filters
-#     }
-#
-#
-# def handle_greeting():
-#     """Handle greeting queries"""
-#     greetings = [
-#         "Hello! I'm FinBot, your cloud cost assistant. 😊",
-#         "Hi there! I'm here to help you understand your cloud spending.",
-#         "Namaste! I can help you analyze your cloud costs and expenses.",
-#         "Hello! Ready to dive into your cloud financial data?"
-#     ]
-#
-#     import random
-#     greeting = random.choice(greetings)
-#
-#     return {
-#         'type': 'greeting',
-#         'response': f"{greeting} Ask me questions like:\n• 'What did we spend on AI services in 2025?'\n• 'Show me account acct-5609 details'\n• 'List all services'"
-#     }
-#
-#
-# def handle_unclear_query():
-#     """Handle unclear or nonsensical queries"""
-#     return {
-#         'type': 'unclear',
-#         'response': "I'm not sure what you're asking about. 🤔\n\nI can help you with:\n• Cloud costs: 'What did we spend on AI in July 2025?'\n• Account details: 'Show me account acct-5609 details'\n• Resource info: 'What service does res-abc123 belong to?'\n• Service lists: 'List all services'\n• Counts: 'How many unique accounts are there?'\n\nType 'help' for more examples!"
-#     }
-#
-#
-# def get_month_name(month_code):
-#     """Convert month code to readable name"""
-#     if not month_code:
-#         return "Unknown month"
-#
-#     month_names = {
-#         '2025-01': 'January 2025', '2025-02': 'February 2025', '2025-03': 'March 2025',
-#         '2025-04': 'April 2025', '2025-05': 'May 2025', '2025-06': 'June 2025',
-#         '2025-07': 'July 2025', '2025-08': 'August 2025', '2025-09': 'September 2025',
-#         '2025-10': 'October 2025', '2025-11': 'November 2025', '2025-12': 'December 2025'
-#     }
-#     return month_names.get(month_code, month_code)
-#
-#
-# def process_query(question: str, k: int = 5):
-#     """Process a user question with comprehensive classification"""
-#
-#     # First classify the query
-#     query_type = classify_query(question)
-#
-#     print(f"🔍 Query classified as: {query_type}")
-#
-#     # Route to appropriate handler
-#     if query_type == 'greeting':
-#         return handle_greeting()
-#
-#     elif query_type == 'unclear':
-#         return handle_unclear_query()
-#
-#     elif query_type == 'account_query':
-#         return handle_account_query(question)
-#
-#     elif query_type == 'resource_query':
-#         return handle_resource_query(question)
-#
-#     elif query_type == 'count_query':
-#         return handle_count_query(question)
-#
-#     elif query_type == 'monthly_breakdown':
-#         return handle_monthly_breakdown(question)
-#
-#     elif query_type == 'service_list':
-#         return handle_service_list_query(question)
-#
-#     elif query_type == 'financial':
-#         return handle_financial_query(question)
-#
-#     else:
-#         return handle_unclear_query()
-#
-#
-# def display_response(response_data):
-#     """Display the appropriate response based on type"""
-#     if not response_data:
-#         return
-#
-#     response_type = response_data.get('type')
-#
-#     # Handle simple responses
-#     if response_type in ['greeting', 'unclear', 'service_list', 'count_query']:
-#         print(f"\n💬 {response_data['response']}")
-#         return
-#
-#     # Handle complex responses with formatting
-#     print("\n" + "=" * 70)
-#     print("💼 FinBot - Enhanced Cloud Cost Assistant")
-#     print("=" * 70)
-#
-#     print(f"\n🎯 Query Type: {response_type.replace('_', ' ').title()}")
-#     print(f"\n📋 Analysis:")
-#     print("-" * 40)
-#     print(response_data['response'])
-#
-#     # Show additional details if available
-#     if response_data.get('billing_data'):
-#         print(f"\n📈 Found {len(response_data['billing_data'])} detailed records in database")
-#
-#
-# def show_help():
-#     """Display enhanced help information"""
-#     help_text = """
-# 🚀 FinBot - Enhanced Cloud Cost Assistant
-# ========================================
-#
-# I can understand many types of questions about your cloud spending!
-#
-# 💰 FINANCIAL QUESTIONS:
-# • "What did we spend on AI services in 2025?"
-# • "Show me storage costs for July 2025"
-# • "Get total cost of Compute service in year 2025"
-#
-# 👤 ACCOUNT QUERIES:
-# • "Show me account acct-5609 details"
-# • "What is total cost of account acct-1234"
-# • "How many services used by account acct-5609"
-#
-# 🔧 RESOURCE QUERIES:
-# • "What service does resource res-abc123 belong to"
-# • "Show me resource res-def456 costs"
-#
-# 📊 MONTHLY BREAKDOWNS:
-# • "AI service cost in each month separately"
-# • "Show monthly breakdown for Storage service"
-#
-# 📋 SERVICE & COUNT QUERIES:
-# • "List all services" / "List service names only"
-# • "How many unique accounts are there"
-# • "How many resources do we have"
-#
-# 💡 GREETINGS:
-# • "Hi", "Hello" - I'll greet you back without searching data
-#
-# 🔧 COMMANDS:
-# • 'help' - This help menu
-# • 'embed' - Process CSV data
-# • 'status' - System status
-# • 'quit' - Exit
-# """
-#     print(help_text)
-#
-#
-# def check_system_status():
-#     """Enhanced system status check"""
-#     try:
-#         from app.configs import FAISS_INDEX_FILE
-#         index_path = Path(FAISS_INDEX_FILE)
-#
-#         print("\n🔍 System Status Check:")
-#         print("-" * 30)
-#
-#         # Check FAISS index
-#         if index_path.exists():
-#             file_size = index_path.stat().st_size
-#             print(f"✅ FAISS Index: Ready ({file_size:,} bytes)")
-#         else:
-#             print("❌ FAISS Index: Not found")
-#
-#         # Check database connectivity
-#         try:
-#             session = SessionLocal()
-#
-#             # Count records
-#             total_records = session.execute(
-#                 select(func.count(models.Billing.id))
-#             ).scalar()
-#
-#             unique_services = session.execute(
-#                 select(func.count(distinct(models.Billing.service)))
-#             ).scalar()
-#
-#             unique_accounts = session.execute(
-#                 select(func.count(distinct(models.Billing.account_id)))
-#             ).scalar()
-#
-#             unique_resources = session.execute(
-#                 select(func.count(distinct(models.Billing.resource_id)))
-#             ).scalar()
-#
-#             unique_months = session.execute(
-#                 select(func.count(distinct(models.Billing.invoice_month)))
-#             ).scalar()
-#
-#             session.close()
-#
-#             print(f"✅ Database: Connected")
-#             print(f"   📊 Total records: {total_records:,}")
-#             print(f"   🔧 Services: {unique_services}")
-#             print(f"   👤 Accounts: {unique_accounts}")
-#             print(f"   📦 Resources: {unique_resources}")
-#             print(f"   📅 Months: {unique_months}")
-#             print("   System ready for all query types!")
-#
-#             return True
-#
-#         except Exception as e:
-#             print(f"❌ Database: Connection failed - {e}")
-#             return False
-#
-#     except Exception as e:
-#         print(f"❌ System check failed: {e}")
-#         return False
-#
-#
-# def main():
-#     """Enhanced main interface"""
-#     print("🚀 Starting FinBot - Enhanced Cloud Cost Assistant")
-#     print("=" * 60)
-#
-#     # Check system status
-#     system_ready = check_system_status()
-#
-#     if not system_ready:
-#         print("\n⚠️  System not ready! Please run 'embed' command first.")
-#
-#     show_help()
-#
-#     print("\n🗣️  Ready to help with comprehensive cloud cost analysis!")
-#     print("💡 Try: 'Hi', 'Account acct-5609 details', 'AI costs each month', 'List services'")
-#
-#     # Main interaction loop
-#     while True:
-#         try:
-#             user_input = input("\n💬 Ask FinBot> ").strip()
-#
-#             if not user_input:
-#                 print("🤔 Please ask me something!")
-#                 continue
-#
-#             # Handle system commands
-#             if user_input.lower() in ['quit', 'exit', 'q', 'bye']:
-#                 print("👋 Thanks for using FinBot! Have a great day!")
-#                 break
-#
-#             elif user_input.lower() in ['help', '?', 'h']:
-#                 show_help()
-#                 continue
-#
-#             elif user_input.lower() == 'embed':
-#                 print("🔄 Processing your data...")
-#                 try:
-#                     stats = embed_all_and_store()
-#                     print(f"\n🎉 Success! Processed {stats['added_vectors']} new records")
-#                     system_ready = True
-#                 except Exception as e:
-#                     print(f"❌ Processing failed: {e}")
-#                 continue
-#
-#             elif user_input.lower() in ['status', 'check']:
-#                 check_system_status()
-#                 continue
-#
-#             # Process the query
-#             response_data = process_query(user_input)
-#             display_response(response_data)
-#
-#         except KeyboardInterrupt:
-#             print("\n\n👋 Thanks for using FinBot! Goodbye!")
-#             break
-#         except EOFError:
-#             print("\n👋 Goodbye!")
-#             break
-#         except Exception as e:
-#             print(f"❌ Something went wrong: {e}")
-#             logger.exception("Unexpected error in main loop")
-#
-#
-# if __name__ == "__main__":
-#     main()
+
+
+# Add database imports
+from sqlalchemy import select, distinct, func
+from app.db.base import SessionLocal
+from app.db import models
+
+# Configure logging to reduce noise in terminal
+logging.basicConfig(level=logging.WARNING)
+logger = logging.getLogger(__name__)
+
+
+def get_comprehensive_billing_data(filters=None):
+    """Get comprehensive billing data from database with filters"""
+    try:
+        session = SessionLocal()
+        query = select(models.Billing)
+
+        if filters:
+            if filters.get('service'):
+                query = query.where(models.Billing.service.ilike(f"%{filters['service']}%"))
+            if filters.get('account_id'):
+                query = query.where(models.Billing.account_id == filters['account_id'])
+            if filters.get('resource_id'):
+                query = query.where(models.Billing.resource_id == filters['resource_id'])
+            if filters.get('month'):
+                query = query.where(models.Billing.invoice_month == filters['month'])
+            if filters.get('year'):
+                query = query.where(models.Billing.invoice_month.like(f"{filters['year']}%"))
+
+        billing_rows = session.execute(query).scalars().all()
+        session.close()
+
+        # Convert to dictionary format
+        billing_data = []
+        for row in billing_rows:
+            billing_data.append({
+                'invoice_month': getattr(row, 'invoice_month', ''),
+                'account_id': getattr(row, 'account_id', ''),
+                'subscription': getattr(row, 'subscription', ''),
+                'service': getattr(row, 'service', ''),
+                'resource_group': getattr(row, 'resource_group', ''),
+                'resource_id': getattr(row, 'resource_id', ''),
+                'region': getattr(row, 'region', ''),
+                'usage_qty': getattr(row, 'usage_qty', 0),
+                'unit_cost': getattr(row, 'unit_cost', 0),
+                'cost': getattr(row, 'cost', 0)
+            })
+
+        return billing_data
+    except Exception as e:
+        logger.error(f"Error getting billing data: {e}")
+        return []
+
+
+def classify_query(question):
+    """Enhanced query classification with more patterns"""
+    question_lower = question.lower().strip()
+
+    # Greeting patterns
+    greeting_patterns = [
+        r'^(hi+|hello|hey|good morning|good afternoon|good evening)$',
+        r'^(ram ram|namaste|namaskar)$',
+        r'^(hii+|hiii+|hiiii+)$'
+    ]
+
+    # Account-specific patterns
+    account_patterns = [
+        r'account.*acct-[a-f0-9]+',
+        r'acct-[a-f0-9]+.*details',
+        r'acct-[a-f0-9]+.*cost',
+        r'acct-[a-f0-9]+.*service',
+        r'how.*many.*services.*account',
+        r'account.*spending',
+        r'account.*breakdown'
+    ]
+
+    # Resource-specific patterns
+    resource_patterns = [
+        r'resource.*res-[a-f0-9]+',
+        r'res-[a-f0-9]+.*service',
+        r'res-[a-f0-9]+.*cost',
+        r'res-[a-f0-9]+.*belong',
+        r'resource.*belong.*service'
+    ]
+
+    # Service listing patterns
+    service_list_patterns = [
+        r'list.*services?',
+        r'show.*services?',
+        r'all.*services?',
+        r'what.*services?',
+        r'services?.*we.*use',
+        r'services?.*names?',
+        r'services?.*available'
+    ]
+
+    # Monthly breakdown patterns
+    monthly_breakdown_patterns = [
+        r'each.*month.*separately',
+        r'month.*separately',
+        r'monthly.*breakdown',
+        r'cost.*each.*month',
+        r'service.*each.*month',
+        r'monthly.*cost',
+        r'breakdown.*month'
+    ]
+
+    # Count/statistics patterns
+    count_patterns = [
+        r'how.*many.*account',
+        r'how.*many.*resource',
+        r'how.*many.*service',
+        r'count.*account',
+        r'count.*resource',
+        r'unique.*account',
+        r'total.*account'
+    ]
+
+    # Nonsensical/unclear patterns
+    unclear_patterns = [
+        r'^(what\??|huh\??|eh\??|\?\?+)$',
+        r'^(hmm+|um+|uh+)$',
+        r'^(\?+|\.+|\!+)$',
+        r'^(lee|ok|yes|no)$'
+    ]
+
+    # Financial/cost-related keywords
+    financial_keywords = [
+        'cost', 'price', 'spend', 'expense', 'bill', 'charge', 'money', 'dollar',
+        'invoice', 'month', '2025', 'total', 'how much', 'budget', 'unit_cost'
+    ]
+
+    # Check for greetings
+    for pattern in greeting_patterns:
+        if re.match(pattern, question_lower):
+            return 'greeting'
+
+    # Check for account queries
+    for pattern in account_patterns:
+        if re.search(pattern, question_lower):
+            return 'account_query'
+
+    # Check for resource queries
+    for pattern in resource_patterns:
+        if re.search(pattern, question_lower):
+            return 'resource_query'
+
+    # Check for count queries
+    for pattern in count_patterns:
+        if re.search(pattern, question_lower):
+            return 'count_query'
+
+    # Check for monthly breakdown
+    for pattern in monthly_breakdown_patterns:
+        if re.search(pattern, question_lower):
+            return 'monthly_breakdown'
+
+    # Check for service listing requests
+    for pattern in service_list_patterns:
+        if re.search(pattern, question_lower):
+            return 'service_list'
+
+    # Check for unclear/nonsensical queries
+    for pattern in unclear_patterns:
+        if re.match(pattern, question_lower):
+            return 'unclear'
+
+    # Check for financial keywords
+    has_financial_keywords = any(keyword in question_lower for keyword in financial_keywords)
+    has_time_reference = bool(re.search(
+        r'(2025|january|february|march|april|may|june|july|august|september|october|november|december|\d{4}-\d{2})',
+        question_lower))
+
+    # Financial query if it has financial keywords or time references with context
+    if has_financial_keywords or (has_time_reference and len(question.split()) > 2):
+        return 'financial'
+
+    return 'unclear'
+
+
+def extract_account_id(question):
+    """Extract account ID from question"""
+    match = re.search(r'acct-([a-f0-9]+)', question.lower())
+    return f"acct-{match.group(1)}" if match else None
+
+
+def extract_resource_id(question):
+    """Extract resource ID from question"""
+    match = re.search(r'res-([a-f0-9]+)', question.lower())
+    return f"res-{match.group(1)}" if match else None
+
+
+def extract_service_filter(question):
+    """Extract specific service mentioned in the question"""
+    question_lower = question.lower()
+
+    # Direct service name matches
+    if 'ai' in question_lower:
+        return 'AI'
+    elif 'compute' in question_lower:
+        return 'Compute'
+    elif 'storage' in question_lower:
+        return 'Storage'
+    elif 'database' in question_lower or ' db ' in question_lower:
+        return 'DB'
+    elif 'network' in question_lower:
+        return 'Networking'
+
+    return None
+
+
+def extract_time_filter(question):
+    """Extract specific time period mentioned in the question"""
+    question_lower = question.lower()
+
+    # Look for year patterns
+    if 'year 2025' in question_lower or '2025 year' in question_lower:
+        return 'year_2025'
+
+    # Look for specific months
+    month_match = re.search(r'2025-(\d{2})', question)
+    if month_match:
+        return f"2025-{month_match.group(1)}"
+
+    # Look for month names
+    months = {
+        'january': '2025-01', 'february': '2025-02', 'march': '2025-03',
+        'april': '2025-04', 'may': '2025-05', 'june': '2025-06',
+        'july': '2025-07', 'august': '2025-08', 'september': '2025-09',
+        'october': '2025-10', 'november': '2025-11', 'december': '2025-12'
+    }
+
+    for month_name, month_code in months.items():
+        if month_name in question_lower or month_name[:3] in question_lower:
+            return month_code
+
+    return None
+
+
+def handle_account_query(question):
+    """Handle account-specific queries"""
+    account_id = extract_account_id(question)
+
+    if not account_id:
+        return {
+            'type': 'account_query',
+            'response': "I couldn't find a valid account ID in your question. Please use format like 'acct-1234' or ask about a specific account ID."
+        }
+
+    # Get all data for this account
+    billing_data = get_comprehensive_billing_data({'account_id': account_id})
+
+    if not billing_data:
+        return {
+            'type': 'account_query',
+            'response': f"No billing records found for account {account_id}. This account might not exist in your data or has no charges."
+        }
+
+    # Analyze the data
+    total_cost = sum(float(item['cost']) for item in billing_data)
+    unique_services = set(item['service'] for item in billing_data if item['service'])
+    unique_months = set(item['invoice_month'] for item in billing_data if item['invoice_month'])
+    total_transactions = len(billing_data)
+
+    # Service breakdown
+    service_costs = {}
+    for item in billing_data:
+        service = item['service']
+        cost = float(item['cost'])
+        if service in service_costs:
+            service_costs[service] += cost
+        else:
+            service_costs[service] = cost
+
+    # Generate response
+    response = f"Account {account_id} Details:\n\n"
+    response += f"💰 Total Spending: ${total_cost:,.2f}\n"
+    response += f"📊 Total Transactions: {total_transactions}\n"
+    response += f"🔧 Unique Services Used: {len(unique_services)}\n"
+    response += f"📅 Active Months: {len(unique_months)}\n\n"
+
+    if service_costs:
+        response += "Service Breakdown:\n"
+        sorted_services = sorted(service_costs.items(), key=lambda x: x[1], reverse=True)
+        for service, cost in sorted_services:
+            percentage = (cost / total_cost) * 100
+            response += f"• {service}: ${cost:,.2f} ({percentage:.1f}%)\n"
+
+    if len(unique_months) > 1:
+        month_costs = {}
+        for item in billing_data:
+            month = item['invoice_month']
+            cost = float(item['cost'])
+            if month in month_costs:
+                month_costs[month] += cost
+            else:
+                month_costs[month] = cost
+
+        response += f"\nMonthly Breakdown:\n"
+        for month in sorted(month_costs.keys()):
+            response += f"• {get_month_name(month)}: ${month_costs[month]:,.2f}\n"
+
+    return {
+        'type': 'account_query',
+        'response': response,
+        'account_id': account_id,
+        'billing_data': billing_data
+    }
+
+
+def handle_resource_query(question):
+    """Handle resource-specific queries"""
+    resource_id = extract_resource_id(question)
+
+    if not resource_id:
+        return {
+            'type': 'resource_query',
+            'response': "I couldn't find a valid resource ID in your question. Please use format like 'res-abc123' or ask about a specific resource ID."
+        }
+
+    # Get all data for this resource
+    billing_data = get_comprehensive_billing_data({'resource_id': resource_id})
+
+    if not billing_data:
+        return {
+            'type': 'resource_query',
+            'response': f"No billing records found for resource {resource_id}. This resource might not exist in your data or has no charges."
+        }
+
+    # Analyze the data
+    resource_info = billing_data[0]  # Get first record for basic info
+    total_cost = sum(float(item['cost']) for item in billing_data)
+    service = resource_info['service']
+    region = resource_info['region']
+    resource_group = resource_info['resource_group']
+
+    response = f"Resource {resource_id} Details:\n\n"
+    response += f"🔧 Service: {service}\n"
+    response += f"📍 Region: {region}\n"
+    response += f"📁 Resource Group: {resource_group}\n"
+    response += f"💰 Total Cost: ${total_cost:,.2f}\n"
+    response += f"📊 Total Transactions: {len(billing_data)}\n\n"
+
+    # Monthly breakdown if multiple months
+    month_costs = {}
+    for item in billing_data:
+        month = item['invoice_month']
+        cost = float(item['cost'])
+        usage = float(item['usage_qty']) if item['usage_qty'] else 0
+        unit_cost = float(item['unit_cost']) if item['unit_cost'] else 0
+
+        if month not in month_costs:
+            month_costs[month] = {'cost': 0, 'usage': 0, 'unit_cost': unit_cost}
+        month_costs[month]['cost'] += cost
+        month_costs[month]['usage'] += usage
+
+    if len(month_costs) > 1:
+        response += "Monthly Usage & Costs:\n"
+        for month in sorted(month_costs.keys()):
+            data = month_costs[month]
+            response += f"• {get_month_name(month)}: ${data['cost']:,.2f}"
+            if data['usage'] > 0:
+                response += f" (Usage: {data['usage']:,.2f} units)"
+            if data['unit_cost'] > 0:
+                response += f" (Unit Cost: ${data['unit_cost']:,.4f})"
+            response += f"\n"
+
+    return {
+        'type': 'resource_query',
+        'response': response,
+        'resource_id': resource_id,
+        'billing_data': billing_data
+    }
+
+
+def handle_count_query(question):
+    """Handle count/statistics queries"""
+    question_lower = question.lower()
+
+    if 'account' in question_lower:
+        # Count unique accounts
+        try:
+            session = SessionLocal()
+            account_count = session.execute(
+                select(func.count(distinct(models.Billing.account_id)))
+            ).scalar()
+            session.close()
+
+            return {
+                'type': 'count_query',
+                'response': f"Total unique accounts in your data: {account_count}"
+            }
+        except Exception as e:
+            return {
+                'type': 'count_query',
+                'response': f"Error counting accounts: {e}"
+            }
+
+    elif 'resource' in question_lower:
+        # Count unique resources
+        try:
+            session = SessionLocal()
+            resource_count = session.execute(
+                select(func.count(distinct(models.Billing.resource_id)))
+            ).scalar()
+            session.close()
+
+            return {
+                'type': 'count_query',
+                'response': f"Total unique resources in your data: {resource_count}"
+            }
+        except Exception as e:
+            return {
+                'type': 'count_query',
+                'response': f"Error counting resources: {e}"
+            }
+
+    elif 'service' in question_lower:
+        # Count unique services
+        try:
+            session = SessionLocal()
+            service_count = session.execute(
+                select(func.count(distinct(models.Billing.service)))
+            ).scalar()
+            session.close()
+
+            return {
+                'type': 'count_query',
+                'response': f"Total unique services in your data: {service_count}"
+            }
+        except Exception as e:
+            return {
+                'type': 'count_query',
+                'response': f"Error counting services: {e}"
+            }
+
+    return {
+        'type': 'count_query',
+        'response': "I can count accounts, resources, or services. Try: 'How many unique accounts are there?'"
+    }
+
+
+def handle_monthly_breakdown(question):
+    """Handle monthly breakdown queries"""
+    service_filter = extract_service_filter(question)
+
+    filters = {}
+    if service_filter:
+        filters['service'] = service_filter
+
+    billing_data = get_comprehensive_billing_data(filters)
+
+    if not billing_data:
+        service_text = f" for {service_filter}" if service_filter else ""
+        return {
+            'type': 'monthly_breakdown',
+            'response': f"No billing data found{service_text}. Make sure your data has been processed."
+        }
+
+    # Group by month
+    monthly_data = {}
+    total_cost = 0
+
+    for item in billing_data:
+        month = item['invoice_month']
+        cost = float(item['cost'])
+        usage = float(item['usage_qty']) if item['usage_qty'] else 0
+        unit_cost = float(item['unit_cost']) if item['unit_cost'] else 0
+
+        if month not in monthly_data:
+            monthly_data[month] = {
+                'cost': 0,
+                'usage': 0,
+                'transactions': 0,
+                'avg_unit_cost': 0,
+                'unit_costs': []
+            }
+
+        monthly_data[month]['cost'] += cost
+        monthly_data[month]['usage'] += usage
+        monthly_data[month]['transactions'] += 1
+        if unit_cost > 0:
+            monthly_data[month]['unit_costs'].append(unit_cost)
+
+        total_cost += cost
+
+    # Calculate averages
+    for month_data in monthly_data.values():
+        if month_data['unit_costs']:
+            month_data['avg_unit_cost'] = sum(month_data['unit_costs']) / len(month_data['unit_costs'])
+
+    service_text = f" for {service_filter} service" if service_filter else ""
+    response = f"Monthly Breakdown{service_text}:\n\n"
+    response += f"Total Cost: ${total_cost:,.2f}\n\n"
+
+    for month in sorted(monthly_data.keys()):
+        data = monthly_data[month]
+        percentage = (data['cost'] / total_cost) * 100
+
+        response += f"📅 {get_month_name(month)}:\n"
+        response += f"   💰 Cost: ${data['cost']:,.2f} ({percentage:.1f}% of total)\n"
+        response += f"   📊 Transactions: {data['transactions']}\n"
+
+        if data['usage'] > 0:
+            response += f"   📈 Usage: {data['usage']:,.2f} units\n"
+
+        if data['avg_unit_cost'] > 0:
+            response += f"   💵 Avg Unit Cost: ${data['avg_unit_cost']:,.4f}\n"
+
+        response += f"\n"
+
+    return {
+        'type': 'monthly_breakdown',
+        'response': response,
+        'monthly_data': monthly_data,
+        'service_filter': service_filter
+    }
+
+
+def handle_service_list_query(question):
+    """Handle requests for listing services"""
+    question_lower = question.lower()
+
+    # Check if user wants just names (no costs)
+    wants_names_only = any(phrase in question_lower for phrase in [
+        'just names', 'only names', 'service names', 'name not', 'not cost', 'not percentage',
+        'without cost', 'without percentage', 'names only', 'list names'
+    ])
+
+    if wants_names_only:
+        try:
+            session = SessionLocal()
+            services = session.execute(
+                select(distinct(models.Billing.service))
+                .where(models.Billing.service.isnot(None))
+            ).scalars().all()
+            session.close()
+
+            if not services:
+                return {
+                    'type': 'service_list',
+                    'response': "I couldn't find any services in your database."
+                }
+
+            services = sorted([service for service in services if service and service.strip()])
+
+            response = f"Here are all the cloud services you've used:\n\n"
+            for i, service in enumerate(services, 1):
+                response += f"{i}. {service}\n"
+
+            response += f"\nTotal: {len(services)} different services found in your records."
+
+            return {
+                'type': 'service_list',
+                'response': response,
+                'services': services
+            }
+        except Exception as e:
+            return {
+                'type': 'service_list',
+                'response': f"Error retrieving services: {e}"
+            }
+
+    else:
+        # Get comprehensive service summary
+        billing_data = get_comprehensive_billing_data()
+
+        if not billing_data:
+            return {
+                'type': 'service_list',
+                'response': "I couldn't find any service data in your database."
+            }
+
+        service_summary = {}
+        total_cost = 0
+
+        for item in billing_data:
+            service = item['service']
+            cost = float(item['cost'])
+            month = item['invoice_month']
+
+            if service not in service_summary:
+                service_summary[service] = {
+                    'total_cost': 0,
+                    'transaction_count': 0,
+                    'months': set()
+                }
+
+            service_summary[service]['total_cost'] += cost
+            service_summary[service]['transaction_count'] += 1
+            service_summary[service]['months'].add(month)
+            total_cost += cost
+
+        # Sort services by total cost (descending)
+        sorted_services = sorted(service_summary.items(), key=lambda x: x[1]['total_cost'], reverse=True)
+
+        response = f"Here are all the cloud services you've used with their details:\n\n"
+
+        for i, (service, data) in enumerate(sorted_services, 1):
+            percentage = (data['total_cost'] / total_cost) * 100 if total_cost > 0 else 0
+            months_count = len(data['months'])
+
+            response += f"{i}. {service}\n"
+            response += f"   • Total spent: ${data['total_cost']:,.2f} ({percentage:.1f}% of all spending)\n"
+            response += f"   • Transactions: {data['transaction_count']}\n"
+            response += f"   • Active in {months_count} month{'s' if months_count != 1 else ''}\n\n"
+
+        response += f"Summary: {len(sorted_services)} different services, ${total_cost:,.2f} total spending"
+
+        return {
+            'type': 'service_list_detailed',
+            'response': response,
+            'service_data': service_summary,
+            'total_cost': total_cost
+        }
+
+
+def handle_financial_query(question):
+    """Handle financial queries with comprehensive data"""
+    service_filter = extract_service_filter(question)
+    time_filter = extract_time_filter(question)
+    account_id = extract_account_id(question)
+    resource_id = extract_resource_id(question)
+
+    # Build filters
+    filters = {}
+    if service_filter:
+        filters['service'] = service_filter
+    if time_filter:
+        if time_filter == 'year_2025':
+            filters['year'] = '2025'
+        else:
+            filters['month'] = time_filter
+    if account_id:
+        filters['account_id'] = account_id
+    if resource_id:
+        filters['resource_id'] = resource_id
+
+    # Get comprehensive data
+    billing_data = get_comprehensive_billing_data(filters)
+
+    if not billing_data:
+        return {
+            'type': 'financial',
+            'response': "I couldn't find any billing data matching your criteria. Please check your filters and try again."
+        }
+
+    # Generate comprehensive response
+    total_cost = sum(float(item['cost']) for item in billing_data)
+    transaction_count = len(billing_data)
+
+    response_parts = []
+
+    # Main summary
+    filter_description = []
+    if service_filter:
+        filter_description.append(f"{service_filter} service")
+    if time_filter:
+        if time_filter == 'year_2025':
+            filter_description.append("in 2025")
+        else:
+            filter_description.append(f"in {get_month_name(time_filter)}")
+    if account_id:
+        filter_description.append(f"for account {account_id}")
+    if resource_id:
+        filter_description.append(f"for resource {resource_id}")
+
+    filter_text = " ".join(filter_description) if filter_description else ""
+
+    response_parts.append(
+        f"Found {transaction_count} transactions{' ' + filter_text if filter_text else ''} totaling ${total_cost:,.2f}.")
+
+    # Service breakdown (if not filtered by service)
+    if not service_filter:
+        services = {}
+        for item in billing_data:
+            service = item['service']
+            cost = float(item['cost'])
+            if service in services:
+                services[service] += cost
+            else:
+                services[service] = cost
+
+        if len(services) > 1:
+            response_parts.append("Service breakdown:")
+            sorted_services = sorted(services.items(), key=lambda x: x[1], reverse=True)
+            for service, cost in sorted_services[:5]:
+                percentage = (cost / total_cost) * 100
+                response_parts.append(f"• {service}: ${cost:,.2f} ({percentage:.1f}%)")
+
+    # Monthly breakdown (if not filtered by specific month)
+    if not time_filter or time_filter == 'year_2025':
+        months = {}
+        for item in billing_data:
+            month = item['invoice_month']
+            cost = float(item['cost'])
+            if month in months:
+                months[month] += cost
+            else:
+                months[month] = cost
+
+        if len(months) > 1:
+            response_parts.append("Monthly breakdown:")
+            for month in sorted(months.keys()):
+                cost = months[month]
+                percentage = (cost / total_cost) * 100
+                response_parts.append(f"• {get_month_name(month)}: ${cost:,.2f} ({percentage:.1f}%)")
+
+    return {
+        'type': 'financial',
+        'response': " ".join(response_parts),
+        'billing_data': billing_data,
+        'filters': filters
+    }
+
+
+def handle_greeting():
+    """Handle greeting queries"""
+    greetings = [
+        "Hello! I'm FinBot, your cloud cost assistant. 😊",
+        "Hi there! I'm here to help you understand your cloud spending.",
+        "Namaste! I can help you analyze your cloud costs and expenses.",
+        "Hello! Ready to dive into your cloud financial data?"
+    ]
+
+    import random
+    greeting = random.choice(greetings)
+
+    return {
+        'type': 'greeting',
+        'response': f"{greeting} Ask me questions like:\n• 'What did we spend on AI services in 2025?'\n• 'Show me account acct-5609 details'\n• 'List all services'"
+    }
+
+
+def handle_unclear_query():
+    """Handle unclear or nonsensical queries"""
+    return {
+        'type': 'unclear',
+        'response': "I'm not sure what you're asking about. 🤔\n\nI can help you with:\n• Cloud costs: 'What did we spend on AI in July 2025?'\n• Account details: 'Show me account acct-5609 details'\n• Resource info: 'What service does res-abc123 belong to?'\n• Service lists: 'List all services'\n• Counts: 'How many unique accounts are there?'\n\nType 'help' for more examples!"
+    }
+
+
+def get_month_name(month_code):
+    """Convert month code to readable name"""
+    if not month_code:
+        return "Unknown month"
+
+    month_names = {
+        '2025-01': 'January 2025', '2025-02': 'February 2025', '2025-03': 'March 2025',
+        '2025-04': 'April 2025', '2025-05': 'May 2025', '2025-06': 'June 2025',
+        '2025-07': 'July 2025', '2025-08': 'August 2025', '2025-09': 'September 2025',
+        '2025-10': 'October 2025', '2025-11': 'November 2025', '2025-12': 'December 2025'
+    }
+    return month_names.get(month_code, month_code)
+
+
+def process_query(question: str, k: int = 5):
+    """Process a user question with comprehensive classification"""
+
+    # First classify the query
+    query_type = classify_query(question)
+
+    print(f"🔍 Query classified as: {query_type}")
+
+    # Route to appropriate handler
+    if query_type == 'greeting':
+        return handle_greeting()
+
+    elif query_type == 'unclear':
+        return handle_unclear_query()
+
+    elif query_type == 'account_query':
+        return handle_account_query(question)
+
+    elif query_type == 'resource_query':
+        return handle_resource_query(question)
+
+    elif query_type == 'count_query':
+        return handle_count_query(question)
+
+    elif query_type == 'monthly_breakdown':
+        return handle_monthly_breakdown(question)
+
+    elif query_type == 'service_list':
+        return handle_service_list_query(question)
+
+    elif query_type == 'financial':
+        return handle_financial_query(question)
+
+    else:
+        return handle_unclear_query()
+
+
+def display_response(response_data):
+    """Display the appropriate response based on type"""
+    if not response_data:
+        return
+
+    response_type = response_data.get('type')
+
+    # Handle simple responses
+    if response_type in ['greeting', 'unclear', 'service_list', 'count_query']:
+        print(f"\n💬 {response_data['response']}")
+        return
+
+    # Handle complex responses with formatting
+    print("\n" + "=" * 70)
+    print("💼 FinBot - Enhanced Cloud Cost Assistant")
+    print("=" * 70)
+
+    print(f"\n🎯 Query Type: {response_type.replace('_', ' ').title()}")
+    print(f"\n📋 Analysis:")
+    print("-" * 40)
+    print(response_data['response'])
+
+    # Show additional details if available
+    if response_data.get('billing_data'):
+        print(f"\n📈 Found {len(response_data['billing_data'])} detailed records in database")
+
+
+def show_help():
+    """Display enhanced help information"""
+    help_text = """
+🚀 FinBot - Enhanced Cloud Cost Assistant
+========================================
+
+I can understand many types of questions about your cloud spending!
+
+💰 FINANCIAL QUESTIONS:
+• "What did we spend on AI services in 2025?"
+• "Show me storage costs for July 2025"
+• "Get total cost of Compute service in year 2025"
+
+👤 ACCOUNT QUERIES:
+• "Show me account acct-5609 details"
+• "What is total cost of account acct-1234"
+• "How many services used by account acct-5609"
+
+🔧 RESOURCE QUERIES:
+• "What service does resource res-abc123 belong to"
+• "Show me resource res-def456 costs"
+
+📊 MONTHLY BREAKDOWNS:
+• "AI service cost in each month separately"
+• "Show monthly breakdown for Storage service"
+
+📋 SERVICE & COUNT QUERIES:
+• "List all services" / "List service names only"
+• "How many unique accounts are there"
+• "How many resources do we have"
+
+💡 GREETINGS:
+• "Hi", "Hello" - I'll greet you back without searching data
+
+🔧 COMMANDS:
+• 'help' - This help menu
+• 'embed' - Process CSV data
+• 'status' - System status
+• 'quit' - Exit
+"""
+    print(help_text)
+
+
+def check_system_status():
+    """Enhanced system status check"""
+    try:
+        from app.configs import FAISS_INDEX_FILE
+        index_path = Path(FAISS_INDEX_FILE)
+
+        print("\n🔍 System Status Check:")
+        print("-" * 30)
+
+        # Check FAISS index
+        if index_path.exists():
+            file_size = index_path.stat().st_size
+            print(f"✅ FAISS Index: Ready ({file_size:,} bytes)")
+        else:
+            print("❌ FAISS Index: Not found")
+
+        # Check database connectivity
+        try:
+            session = SessionLocal()
+
+            # Count records
+            total_records = session.execute(
+                select(func.count(models.Billing.id))
+            ).scalar()
+
+            unique_services = session.execute(
+                select(func.count(distinct(models.Billing.service)))
+            ).scalar()
+
+            unique_accounts = session.execute(
+                select(func.count(distinct(models.Billing.account_id)))
+            ).scalar()
+
+            unique_resources = session.execute(
+                select(func.count(distinct(models.Billing.resource_id)))
+            ).scalar()
+
+            unique_months = session.execute(
+                select(func.count(distinct(models.Billing.invoice_month)))
+            ).scalar()
+
+            session.close()
+
+            print(f"✅ Database: Connected")
+            print(f"   📊 Total records: {total_records:,}")
+            print(f"   🔧 Services: {unique_services}")
+            print(f"   👤 Accounts: {unique_accounts}")
+            print(f"   📦 Resources: {unique_resources}")
+            print(f"   📅 Months: {unique_months}")
+            print("   System ready for all query types!")
+
+            return True
+
+        except Exception as e:
+            print(f"❌ Database: Connection failed - {e}")
+            return False
+
+    except Exception as e:
+        print(f"❌ System check failed: {e}")
+        return False
+
+
+def main():
+    """Enhanced main interface"""
+    print("🚀 Starting FinBot - Enhanced Cloud Cost Assistant")
+    print("=" * 60)
+
+    # Check system status
+    system_ready = check_system_status()
+
+    if not system_ready:
+        print("\n⚠️  System not ready! Please run 'embed' command first.")
+
+    show_help()
+
+    print("\n🗣️  Ready to help with comprehensive cloud cost analysis!")
+    print("💡 Try: 'Hi', 'Account acct-5609 details', 'AI costs each month', 'List services'")
+
+    # Main interaction loop
+    while True:
+        try:
+            user_input = input("\n💬 Ask FinBot> ").strip()
+
+            if not user_input:
+                print("🤔 Please ask me something!")
+                continue
+
+            # Handle system commands
+            if user_input.lower() in ['quit', 'exit', 'q', 'bye']:
+                print("👋 Thanks for using FinBot! Have a great day!")
+                break
+
+            elif user_input.lower() in ['help', '?', 'h']:
+                show_help()
+                continue
+
+            elif user_input.lower() == 'embed':
+                print("🔄 Processing your data...")
+                try:
+                    stats = embed_all_and_store()
+                    print(f"\n🎉 Success! Processed {stats['added_vectors']} new records")
+                    system_ready = True
+                except Exception as e:
+                    print(f"❌ Processing failed: {e}")
+                continue
+
+            elif user_input.lower() in ['status', 'check']:
+                check_system_status()
+                continue
+
+            # Process the query
+            response_data = process_query(user_input)
+            display_response(response_data)
+
+        except KeyboardInterrupt:
+            print("\n\n👋 Thanks for using FinBot! Goodbye!")
+            break
+        except EOFError:
+            print("\n👋 Goodbye!")
+            break
+        except Exception as e:
+            print(f"❌ Something went wrong: {e}")
+            logger.exception("Unexpected error in main loop")
+
+
+if __name__ == "__main__":
+    main()
 
 
 # #!/usr/bin/env python3
@@ -3981,515 +3981,515 @@ def display_friendly_response(response_data):
 #
 
 
-# !/usr/bin/env python3
-"""
-Enhanced Terminal RAG System – now with Resource-metadata support
-"""
-
-import json, logging, re
-from pathlib import Path
-from sqlalchemy import select, distinct, func
-
-# ── project imports ───────────────────────────────────────────────────
-from app.services.embedder import query_knn, embed_all_and_store
-from backend.prompts import build_simple_prompt, get_enhanced_examples
-from app.db.base import SessionLocal
-from app.db import models
-
-logging.basicConfig(level=logging.WARNING)
-logger = logging.getLogger(__name__)
-
-
-# ╔══════════════════════════════════════════════════════════════════╗
-# ║                       DATABASE HELPERS                           ║
-# ╚══════════════════════════════════════════════════════════════════╝
-def get_comprehensive_billing_data(filters: dict | None = None):
-    try:
-        s = SessionLocal()
-        q = select(models.Billing)
-        if filters:
-            if filters.get("service"):
-                q = q.where(models.Billing.service.ilike(f"%{filters['service']}%"))
-            if filters.get("account_id"):
-                q = q.where(models.Billing.account_id == filters["account_id"])
-            if filters.get("resource_id"):
-                q = q.where(models.Billing.resource_id == filters["resource_id"])
-            if filters.get("resource_ids"):
-                q = q.where(models.Billing.resource_id.in_(filters["resource_ids"]))
-            if filters.get("month"):
-                q = q.where(models.Billing.invoice_month == filters["month"])
-            if filters.get("year"):
-                q = q.where(models.Billing.invoice_month.like(f"{filters['year']}%"))
-        rows = s.execute(q).scalars().all()
-        s.close()
-        return [
-            dict(
-                invoice_month=r.invoice_month,
-                account_id=r.account_id,
-                subscription=r.subscription,
-                service=r.service,
-                resource_group=r.resource_group,
-                resource_id=r.resource_id,
-                region=r.region,
-                usage_qty=r.usage_qty,
-                unit_cost=r.unit_cost,
-                cost=r.cost,
-            )
-            for r in rows
-        ]
-    except Exception as e:
-        logger.error("billing fetch error: %s", e)
-        return []
-
-
-# ── NEW  resource-metadata helpers ───────────────────────────────────
-def get_resources_by_owner(owner: str):
-    with SessionLocal() as s:
-        return (
-            s.query(models.Resource)
-            .filter(models.Resource.owner.ilike(f"%{owner}%"))
-            .all()
-        )
-
-
-def get_resources_by_env(env: str):
-    with SessionLocal() as s:
-        return (
-            s.query(models.Resource)
-            .filter(models.Resource.env.ilike(f"%{env}%"))
-            .all()
-        )
-
-
-def get_complete_resource_data(res_id: str):
-    with SessionLocal() as s:
-        meta = (
-            s.query(models.Resource)
-            .filter(models.Resource.resource_id == res_id)
-            .one_or_none()
-        )
-    billing = get_comprehensive_billing_data({"resource_id": res_id})
-    return {"meta": meta, "billing": billing}
-
-
-# ╔══════════════════════════════════════════════════════════════════╗
-# ║                          CLASSIFIER                              ║
-# ╚══════════════════════════════════════════════════════════════════╝
-def classify_query(q: str) -> str:
-    ql = q.lower().strip()
-    if re.match(r"^(hi+|hello|hey|ram ram|namaste|hii+)$", ql):
-        return "greeting"
-
-    # NEW: Schema/table structure queries
-    if re.search(r"(list|show|describe).*(columns?|fields?|structure).*table", ql):
-        return "schema_query"
-    if re.search(r"columns? (of|in|from).*(table|resources)", ql):
-        return "schema_query"
-
-    # NEW: General listing queries
-    if re.search(r"list\s+(down\s+)?all.*(resource_id|resources?)", ql):
-        return "resource_list_query"
-    if re.search(r"list\s+(down\s+)?all.*(including|with).*(owner|env|tags)", ql):
-        return "detailed_resource_list_query"
-
-    # NEW patterns ----------------------------------------------------
-    if re.search(r"owner\s+[a-z]+\s+[a-z]+", ql):
-        return "owner_query"
-    if re.search(r"\benv\b.*\b(dev|test|prod|staging)\b", ql):
-        return "env_query"
-    # -----------------------------------------------------------------
-
-    if re.search(r"account.*acct-[a-f0-9]+|acct-[a-f0-9]+", ql):
-        return "account_query"
-    if re.search(r"resource.*res-[a-f0-9]+|res-[a-f0-9]+", ql):
-        return "resource_query"
-    if re.search(r"list.*services?|show.*services?|all.*services?", ql):
-        return "service_list"
-    if re.search(r"each.*month|monthly.*breakdown|cost.*each.*month", ql):
-        return "monthly_breakdown"
-    if re.search(r"how.*many.*(account|resource|service)|unique.*account", ql):
-        return "count_query"
-    if any(k in ql for k in ["cost", "spend", "price", "dollar", "unit_cost"]):
-        return "financial"
-    return "unclear"
-
-
-# ── id / service / time extractors (unchanged) ───────────────────────
-def extract_account_id(q): m = re.search(r"acct-([a-f0-9]+)", q, re.I);return f"acct-{m.group(1)}" if m else None
-
-
-def extract_resource_id(q): m = re.search(r"res-([a-f0-9]+)", q, re.I);return f"res-{m.group(1)}" if m else None
-
-
-def extract_service_filter(q):
-    ql = q.lower()
-    if "ai" in ql: return "AI"
-    if "compute" in ql: return "Compute"
-    if "storage" in ql: return "Storage"
-    if "database" in ql or " db " in ql: return "DB"
-    if "network" in ql: return "Networking"
-    return None
-
-
-def extract_time_filter(q):
-    ql = q.lower()
-    if "year 2025" in ql: return "year_2025"
-    m = re.search(r"2025-(\d{2})", q);  # YYYY-MM
-    if m: return f"2025-{m.group(1)}"
-    months = {m: f"2025-{i:02d}" for i, m in enumerate(
-        ["january", "february", "march", "april", "may", "june",
-         "july", "august", "september", "october", "november", "december"], 1)}
-    for n, c in months.items():
-        if n in ql or n[:3] in ql: return c
-    return None
-
-
-# ╔════════════ HANDLERS – only new / modified ones shown ═════════════╗
-def handle_greeting():   return {"type": "greeting",
-                                 "response": "Hi! Ask about costs or owners, e.g. 'owner Brian Torres details'."}
-
-
-def handle_unclear():    return {"type": "unclear",
-                                 "response": "Sorry, not sure what you need. Try 'env test resources'."}
-
-
-# NEW: Schema query handler
-def handle_schema_query(q):
-    """Handle queries about table structure/columns"""
-    if "resources" in q.lower():
-        try:
-            s = SessionLocal()
-            # Get sample resource to show column structure
-            sample = s.query(models.Resource).first()
-            s.close()
-
-            if sample:
-                columns = []
-                for column in sample.__table__.columns:
-                    columns.append(f"• {column.name} ({column.type})")
-
-                resp = "Resources table columns:\n" + "\n".join(columns)
-                return {"type": "schema_query", "response": resp}
-            else:
-                return {"type": "schema_query", "response": "Resources table exists but no data to show structure."}
-        except Exception as e:
-            logger.error("Schema query error: %s", e)
-            return {"type": "schema_query", "response": "Error accessing table schema."}
-
-    return {"type": "schema_query", "response": "Specify which table schema you want to see."}
-
-
-# NEW: Resource list handler
-def handle_resource_list_query(q):
-    """Handle general resource listing queries"""
-    try:
-        s = SessionLocal()
-
-        # Check if environment filter is specified
-        env_match = re.search(r"\bfor\s+env\s+(\w+)", q, re.I)
-        if env_match:
-            env = env_match.group(1)
-            resources = s.query(models.Resource).filter(
-                models.Resource.env.ilike(f"%{env}%")
-            ).all()
-            resp = f"Resource IDs for env '{env}':\n"
-        else:
-            resources = s.query(models.Resource).limit(50).all()  # Limit to avoid overflow
-            resp = "All Resource IDs (first 50):\n"
-
-        s.close()
-
-        if not resources:
-            return {"type": "resource_list_query", "response": "No resources found."}
-
-        for r in resources:
-            resp += f"• {r.resource_id}\n"
-
-        return {"type": "resource_list_query", "response": resp}
-
-    except Exception as e:
-        logger.error("Resource list query error: %s", e)
-        return {"type": "resource_list_query", "response": "Error fetching resource list."}
-
-
-# NEW: Detailed resource list handler
-def handle_detailed_resource_list_query(q):
-    """Handle detailed resource listing with owner, env, tags"""
-    try:
-        s = SessionLocal()
-
-        # Check for environment filter
-        env_match = re.search(r"\bfor\s+env\s+(\w+)", q, re.I)
-        if env_match:
-            env = env_match.group(1)
-            resources = s.query(models.Resource).filter(
-                models.Resource.env.ilike(f"%{env}%")
-            ).limit(50).all()
-            resp = f"Detailed resource list for env '{env}':\n\n"
-        else:
-            resources = s.query(models.Resource).limit(20).all()  # Smaller limit for detailed view
-            resp = "Detailed resource list (first 20):\n\n"
-
-        s.close()
-
-        if not resources:
-            return {"type": "detailed_resource_list_query", "response": "No resources found."}
-
-        for r in resources:
-            resp += f"🔹 {r.resource_id}\n"
-            resp += f"   Owner: {r.owner or 'n/a'}\n"
-            resp += f"   Env: {r.env or 'n/a'}\n"
-            tags = (r.tags_json or "")[:100]  # Truncate tags
-            resp += f"   Tags: {tags + ('...' if len(tags) == 100 else '')}\n\n"
-
-        return {"type": "detailed_resource_list_query", "response": resp}
-
-    except Exception as e:
-        logger.error("Detailed resource list query error: %s", e)
-        return {"type": "detailed_resource_list_query", "response": "Error fetching detailed resource list."}
-
-
-# NEW  owner query ----------------------------------------------------
-def handle_owner_query(q):
-    m = re.search(r"owner\s+([A-Za-z]+\s+[A-Za-z]+)", q, re.I)
-    if not m: return {"type": "owner_query", "response": "Please include an owner name."}
-    owner = m.group(1)
-    rows = get_resources_by_owner(owner)
-    if not rows: return {"type": "owner_query", "response": f"No resources for {owner}."}
-    res_ids = [r.resource_id for r in rows]
-    bill = get_comprehensive_billing_data({"resource_ids": res_ids})
-    total = sum(float(b["cost"]) for b in bill)
-    svc = {}
-    for b in bill: svc[b["service"]] = svc.get(b["service"], 0) + float(b["cost"])
-    resp = f"Owner {owner}: {len(rows)} resources, spend ${total:,.2f}\n"
-    if svc:
-        resp += "Service spending:\n"
-        for s, c in sorted(svc.items(), key=lambda x: x[1], reverse=True):
-            resp += f"• {s}: ${c:,.2f}\n"
-    resp += "\nResource IDs (env):\n"
-    resp += "\n".join(f"• {r.resource_id} ({r.env or 'n/a'})" for r in rows[:10])
-    return {"type": "owner_query", "response": resp}
-
-
-# NEW  env query ------------------------------------------------------
-def handle_env_query(q):
-    env = re.search(r"\b(dev|test|prod|staging)\b", q, re.I).group(1)
-    rows = get_resources_by_env(env)
-    if not rows: return {"type": "env_query", "response": f"No resources in env '{env}'."}
-    owners = {}
-    for r in rows: owners.setdefault(r.owner or "Unassigned", []).append(r.resource_id)
-    resp = f"Environment '{env}' – {len(rows)} resources, {len(owners)} owners\n"
-    for o, ids in owners.items(): resp += f"• {o}: {len(ids)} resources\n"
-    return {"type": "env_query", "response": resp}
-
-
-# MODIFIED resource query – adds metadata -----------------------------
-def handle_resource_query(q):
-    rid = extract_resource_id(q)
-    if not rid: return {"type": "resource_query", "response": "Provide a resource id (res-xxxx)."}
-    data = get_complete_resource_data(rid)
-    meta, bill = data["meta"], data["billing"]
-    if meta is None and not bill:
-        return {"type": "resource_query", "response": f"No data for {rid}."}
-    resp = f"Resource {rid}\n\n"
-    if meta:
-        resp += "📋 Metadata\n"
-        resp += f"• owner: {meta.owner or 'n/a'}\n"
-        resp += f"• env  : {meta.env or 'n/a'}\n"
-        tag = (meta.tags_json or "")[:120]
-        resp += f"• tags : {tag + ('…' if len(tag) == 120 else '')}\n\n"
-    if bill:
-        total = sum(float(b['cost']) for b in bill)
-        first = bill[0]
-        resp += "💰 Billing\n"
-        resp += f"• service: {first['service']}\n"
-        resp += f"• region : {first['region']}\n"
-        resp += f"• total  : ${total:,.2f} ({len(bill)} records)\n"
-    return {"type": "resource_query", "response": resp}
-
-
-# ───────────────────────────────────────────────────────────────
-#  BUSINESS-HANDLERS  (restored exactly as before)
-# ───────────────────────────────────────────────────────────────
-def handle_count_query(question):
-    ql = question.lower()
-    try:
-        s = SessionLocal()
-        if "account" in ql:
-            n = s.execute(select(func.count(distinct(models.Billing.account_id)))).scalar()
-            return {"type": "count_query", "response": f"Total unique accounts: {n}"}
-        if "resource" in ql:
-            n = s.execute(select(func.count(distinct(models.Billing.resource_id)))).scalar()
-            return {"type": "count_query", "response": f"Total unique resources: {n}"}
-        if "service" in ql:
-            n = s.execute(select(func.count(distinct(models.Billing.service)))).scalar()
-            return {"type": "count_query", "response": f"Total unique services:  {n}"}
-    finally:
-        s.close()
-    return {"type": "count_query", "response": "Specify account / resource / service to count."}
-
-
-def handle_monthly_breakdown(question):
-    svc = extract_service_filter(question)
-    billing = get_comprehensive_billing_data({"service": svc} if svc else None)
-    if not billing:
-        txt = f" for {svc}" if svc else ""
-        return {"type": "monthly_breakdown",
-                "response": f"No billing data{txt}."}
-
-    months, total = {}, 0
-    for b in billing:
-        m, c = b["invoice_month"], float(b["cost"])
-        months[m] = months.get(m, 0) + c
-        total += c
-
-    resp = f"Monthly breakdown{' for ' + svc if svc else ''} – total ${total:,.2f}\n"
-    for m in sorted(months):
-        pct = months[m] / total * 100
-        resp += f"• {m}: ${months[m]:,.2f} ({pct:.1f}%)\n"
-    return {"type": "monthly_breakdown", "response": resp, "billing_data": billing}
-
-
-def handle_service_list_query(question):
-    want_names = any(p in question.lower() for p in
-                     ["only names", "just names", "names only", "list names", "without cost"])
-    billing = get_comprehensive_billing_data()
-    if not billing:
-        return {"type": "service_list", "response": "No billing data."}
-
-    if want_names:
-        svcs = sorted({b["service"] for b in billing if b["service"]})
-        resp = "Services used:\n" + "\n".join(f"{i + 1}. {s}" for i, s in enumerate(svcs))
-        return {"type": "service_list", "response": resp, "services": svcs}
-
-    by, total = {}, 0
-    for b in billing:
-        by[b["service"]] = by.get(b["service"], 0) + float(b["cost"])
-        total += float(b["cost"])
-
-    resp = "Services with totals:\n"
-    for i, (s, c) in enumerate(sorted(by.items(), key=lambda x: x[1], reverse=True), 1):
-        resp += f"{i}. {s}: ${c:,.2f} ({(c / total) * 100:.1f}%)\n"
-    return {"type": "service_list_detailed", "response": resp, "service_data": by}
-
-
-# ───────────────────────────────────────────────────────────────
-#  ACCOUNT + FINANCIAL  (restored handlers)
-# ───────────────────────────────────────────────────────────────
-def handle_account_query(question):
-    account_id = extract_account_id(question)
-    if not account_id:
-        return {"type": "account_query",
-                "response": "Please include an account id like acct-1234."}
-
-    billing = get_comprehensive_billing_data({"account_id": account_id})
-    if not billing:
-        return {"type": "account_query",
-                "response": f"No billing rows for account {account_id}."}
-
-    total = sum(float(b["cost"]) for b in billing)
-    svcs = {}
-    months = {}
-    for b in billing:
-        svcs[b["service"]] = svcs.get(b["service"], 0) + float(b["cost"])
-        months[b["invoice_month"]] = months.get(b["invoice_month"], 0) + float(b["cost"])
-
-    resp = f"Account {account_id} spent ${total:,.2f} across {len(billing)} records.\n"
-    resp += "Service breakdown:\n"
-    for s, c in sorted(svcs.items(), key=lambda x: x[1], reverse=True):
-        resp += f"• {s}: ${c:,.2f}\n"
-    if len(months) > 1:
-        resp += "\nMonthly totals:\n"
-        for m, c in sorted(months.items()):
-            resp += f"• {m}: ${c:,.2f}\n"
-    return {"type": "account_query", "response": resp, "billing_data": billing}
-
-
-def handle_financial_query(question):
-    svc = extract_service_filter(question)
-    time = extract_time_filter(question)
-    acc = extract_account_id(question)
-    res = extract_resource_id(question)
-
-    filters = {}
-    if svc: filters["service"] = svc
-    if time:
-        if time == "year_2025":
-            filters["year"] = "2025"
-        else:
-            filters["month"] = time
-    if acc: filters["account_id"] = acc
-    if res: filters["resource_id"] = res
-
-    billing = get_comprehensive_billing_data(filters)
-    if not billing:
-        return {"type": "financial",
-                "response": "No billing rows match those filters."}
-
-    total = sum(float(b["cost"]) for b in billing)
-    resp = f"{len(billing)} transactions found — total ${total:,.2f}.\n"
-
-    if not svc:
-        bysvc = {}
-        for b in billing:
-            bysvc[b["service"]] = bysvc.get(b["service"], 0) + float(b["cost"])
-        if len(bysvc) > 1:
-            resp += "Service breakdown:\n"
-            for s, c in sorted(bysvc.items(), key=lambda x: x[1], reverse=True)[:5]:
-                pct = (c / total) * 100
-                resp += f"• {s}: ${c:,.2f} ({pct:.1f}%)\n"
-
-    return {"type": "financial", "response": resp, "billing_data": billing}
-
-
-# ───────────────────────────────────────────────────────────────
-
-# ────────────────────────────────────────────────────────────────────
-
-
-# ╔════════════ ROUTER ════════════╗
-def process_query(q):
-    t = classify_query(q)
-    if t == "greeting": return handle_greeting()
-    if t == "unclear": return handle_unclear()
-
-    # NEW handlers
-    if t == "schema_query": return handle_schema_query(q)
-    if t == "resource_list_query": return handle_resource_list_query(q)
-    if t == "detailed_resource_list_query": return handle_detailed_resource_list_query(q)
-
-    # Existing handlers
-    if t == "owner_query": return handle_owner_query(q)
-    if t == "env_query": return handle_env_query(q)
-    if t == "resource_query": return handle_resource_query(q)
-    if t == "account_query": return handle_account_query(q)
-    if t == "count_query": return handle_count_query(q)
-    if t == "monthly_breakdown": return handle_monthly_breakdown(q)
-    if t == "service_list": return handle_service_list_query(q)
-    if t == "financial": return handle_financial_query(q)
-
-    return handle_unclear()
-
-
-# ╔════════════ DISPLAY ═══════════╗
-def display_response(r):
-    if not r: return
-    simple = {'greeting', 'unclear', 'service_list', 'count_query', 'owner_query', 'env_query', 'schema_query',
-              'resource_list_query', 'detailed_resource_list_query'}
-    if r['type'] in simple:
-        print("\n💬", r['response'])
-        return
-    print("\n" + ("=" * 60))
-    print(r['response'])
-
-
-# ╔════════════ MAIN LOOP ═════════╗
-if __name__ == "__main__":
-    print("🚀 FinBot ready")
-    try:
-        while True:
-            q = input("\n💬 > ").strip()
-            if q.lower() in {"exit", "quit"}: break
-            display_response(process_query(q))
-    except KeyboardInterrupt:
-        pass
+# # !/usr/bin/env python3
+# """
+# Enhanced Terminal RAG System – now with Resource-metadata support
+# """
+#
+# import json, logging, re
+# from pathlib import Path
+# from sqlalchemy import select, distinct, func
+#
+# # ── project imports ───────────────────────────────────────────────────
+# from app.services.embedder import query_knn, embed_all_and_store
+# from backend.prompts import build_simple_prompt, get_enhanced_examples
+# from app.db.base import SessionLocal
+# from app.db import models
+#
+# logging.basicConfig(level=logging.WARNING)
+# logger = logging.getLogger(__name__)
+#
+#
+# # ╔══════════════════════════════════════════════════════════════════╗
+# # ║                       DATABASE HELPERS                           ║
+# # ╚══════════════════════════════════════════════════════════════════╝
+# def get_comprehensive_billing_data(filters: dict | None = None):
+#     try:
+#         s = SessionLocal()
+#         q = select(models.Billing)
+#         if filters:
+#             if filters.get("service"):
+#                 q = q.where(models.Billing.service.ilike(f"%{filters['service']}%"))
+#             if filters.get("account_id"):
+#                 q = q.where(models.Billing.account_id == filters["account_id"])
+#             if filters.get("resource_id"):
+#                 q = q.where(models.Billing.resource_id == filters["resource_id"])
+#             if filters.get("resource_ids"):
+#                 q = q.where(models.Billing.resource_id.in_(filters["resource_ids"]))
+#             if filters.get("month"):
+#                 q = q.where(models.Billing.invoice_month == filters["month"])
+#             if filters.get("year"):
+#                 q = q.where(models.Billing.invoice_month.like(f"{filters['year']}%"))
+#         rows = s.execute(q).scalars().all()
+#         s.close()
+#         return [
+#             dict(
+#                 invoice_month=r.invoice_month,
+#                 account_id=r.account_id,
+#                 subscription=r.subscription,
+#                 service=r.service,
+#                 resource_group=r.resource_group,
+#                 resource_id=r.resource_id,
+#                 region=r.region,
+#                 usage_qty=r.usage_qty,
+#                 unit_cost=r.unit_cost,
+#                 cost=r.cost,
+#             )
+#             for r in rows
+#         ]
+#     except Exception as e:
+#         logger.error("billing fetch error: %s", e)
+#         return []
+#
+#
+# # ── NEW  resource-metadata helpers ───────────────────────────────────
+# def get_resources_by_owner(owner: str):
+#     with SessionLocal() as s:
+#         return (
+#             s.query(models.Resource)
+#             .filter(models.Resource.owner.ilike(f"%{owner}%"))
+#             .all()
+#         )
+#
+#
+# def get_resources_by_env(env: str):
+#     with SessionLocal() as s:
+#         return (
+#             s.query(models.Resource)
+#             .filter(models.Resource.env.ilike(f"%{env}%"))
+#             .all()
+#         )
+#
+#
+# def get_complete_resource_data(res_id: str):
+#     with SessionLocal() as s:
+#         meta = (
+#             s.query(models.Resource)
+#             .filter(models.Resource.resource_id == res_id)
+#             .one_or_none()
+#         )
+#     billing = get_comprehensive_billing_data({"resource_id": res_id})
+#     return {"meta": meta, "billing": billing}
+#
+#
+# # ╔══════════════════════════════════════════════════════════════════╗
+# # ║                          CLASSIFIER                              ║
+# # ╚══════════════════════════════════════════════════════════════════╝
+# def classify_query(q: str) -> str:
+#     ql = q.lower().strip()
+#     if re.match(r"^(hi+|hello|hey|ram ram|namaste|hii+)$", ql):
+#         return "greeting"
+#
+#     # NEW: Schema/table structure queries
+#     if re.search(r"(list|show|describe).*(columns?|fields?|structure).*table", ql):
+#         return "schema_query"
+#     if re.search(r"columns? (of|in|from).*(table|resources)", ql):
+#         return "schema_query"
+#
+#     # NEW: General listing queries
+#     if re.search(r"list\s+(down\s+)?all.*(resource_id|resources?)", ql):
+#         return "resource_list_query"
+#     if re.search(r"list\s+(down\s+)?all.*(including|with).*(owner|env|tags)", ql):
+#         return "detailed_resource_list_query"
+#
+#     # NEW patterns ----------------------------------------------------
+#     if re.search(r"owner\s+[a-z]+\s+[a-z]+", ql):
+#         return "owner_query"
+#     if re.search(r"\benv\b.*\b(dev|test|prod|staging)\b", ql):
+#         return "env_query"
+#     # -----------------------------------------------------------------
+#
+#     if re.search(r"account.*acct-[a-f0-9]+|acct-[a-f0-9]+", ql):
+#         return "account_query"
+#     if re.search(r"resource.*res-[a-f0-9]+|res-[a-f0-9]+", ql):
+#         return "resource_query"
+#     if re.search(r"list.*services?|show.*services?|all.*services?", ql):
+#         return "service_list"
+#     if re.search(r"each.*month|monthly.*breakdown|cost.*each.*month", ql):
+#         return "monthly_breakdown"
+#     if re.search(r"how.*many.*(account|resource|service)|unique.*account", ql):
+#         return "count_query"
+#     if any(k in ql for k in ["cost", "spend", "price", "dollar", "unit_cost"]):
+#         return "financial"
+#     return "unclear"
+#
+#
+# # ── id / service / time extractors (unchanged) ───────────────────────
+# def extract_account_id(q): m = re.search(r"acct-([a-f0-9]+)", q, re.I);return f"acct-{m.group(1)}" if m else None
+#
+#
+# def extract_resource_id(q): m = re.search(r"res-([a-f0-9]+)", q, re.I);return f"res-{m.group(1)}" if m else None
+#
+#
+# def extract_service_filter(q):
+#     ql = q.lower()
+#     if "ai" in ql: return "AI"
+#     if "compute" in ql: return "Compute"
+#     if "storage" in ql: return "Storage"
+#     if "database" in ql or " db " in ql: return "DB"
+#     if "network" in ql: return "Networking"
+#     return None
+#
+#
+# def extract_time_filter(q):
+#     ql = q.lower()
+#     if "year 2025" in ql: return "year_2025"
+#     m = re.search(r"2025-(\d{2})", q);  # YYYY-MM
+#     if m: return f"2025-{m.group(1)}"
+#     months = {m: f"2025-{i:02d}" for i, m in enumerate(
+#         ["january", "february", "march", "april", "may", "june",
+#          "july", "august", "september", "october", "november", "december"], 1)}
+#     for n, c in months.items():
+#         if n in ql or n[:3] in ql: return c
+#     return None
+#
+#
+# # ╔════════════ HANDLERS – only new / modified ones shown ═════════════╗
+# def handle_greeting():   return {"type": "greeting",
+#                                  "response": "Hi! Ask about costs or owners, e.g. 'owner Brian Torres details'."}
+#
+#
+# def handle_unclear():    return {"type": "unclear",
+#                                  "response": "Sorry, not sure what you need. Try 'env test resources'."}
+#
+#
+# # NEW: Schema query handler
+# def handle_schema_query(q):
+#     """Handle queries about table structure/columns"""
+#     if "resources" in q.lower():
+#         try:
+#             s = SessionLocal()
+#             # Get sample resource to show column structure
+#             sample = s.query(models.Resource).first()
+#             s.close()
+#
+#             if sample:
+#                 columns = []
+#                 for column in sample.__table__.columns:
+#                     columns.append(f"• {column.name} ({column.type})")
+#
+#                 resp = "Resources table columns:\n" + "\n".join(columns)
+#                 return {"type": "schema_query", "response": resp}
+#             else:
+#                 return {"type": "schema_query", "response": "Resources table exists but no data to show structure."}
+#         except Exception as e:
+#             logger.error("Schema query error: %s", e)
+#             return {"type": "schema_query", "response": "Error accessing table schema."}
+#
+#     return {"type": "schema_query", "response": "Specify which table schema you want to see."}
+#
+#
+# # NEW: Resource list handler
+# def handle_resource_list_query(q):
+#     """Handle general resource listing queries"""
+#     try:
+#         s = SessionLocal()
+#
+#         # Check if environment filter is specified
+#         env_match = re.search(r"\bfor\s+env\s+(\w+)", q, re.I)
+#         if env_match:
+#             env = env_match.group(1)
+#             resources = s.query(models.Resource).filter(
+#                 models.Resource.env.ilike(f"%{env}%")
+#             ).all()
+#             resp = f"Resource IDs for env '{env}':\n"
+#         else:
+#             resources = s.query(models.Resource).limit(50).all()  # Limit to avoid overflow
+#             resp = "All Resource IDs (first 50):\n"
+#
+#         s.close()
+#
+#         if not resources:
+#             return {"type": "resource_list_query", "response": "No resources found."}
+#
+#         for r in resources:
+#             resp += f"• {r.resource_id}\n"
+#
+#         return {"type": "resource_list_query", "response": resp}
+#
+#     except Exception as e:
+#         logger.error("Resource list query error: %s", e)
+#         return {"type": "resource_list_query", "response": "Error fetching resource list."}
+#
+#
+# # NEW: Detailed resource list handler
+# def handle_detailed_resource_list_query(q):
+#     """Handle detailed resource listing with owner, env, tags"""
+#     try:
+#         s = SessionLocal()
+#
+#         # Check for environment filter
+#         env_match = re.search(r"\bfor\s+env\s+(\w+)", q, re.I)
+#         if env_match:
+#             env = env_match.group(1)
+#             resources = s.query(models.Resource).filter(
+#                 models.Resource.env.ilike(f"%{env}%")
+#             ).limit(50).all()
+#             resp = f"Detailed resource list for env '{env}':\n\n"
+#         else:
+#             resources = s.query(models.Resource).limit(20).all()  # Smaller limit for detailed view
+#             resp = "Detailed resource list (first 20):\n\n"
+#
+#         s.close()
+#
+#         if not resources:
+#             return {"type": "detailed_resource_list_query", "response": "No resources found."}
+#
+#         for r in resources:
+#             resp += f"🔹 {r.resource_id}\n"
+#             resp += f"   Owner: {r.owner or 'n/a'}\n"
+#             resp += f"   Env: {r.env or 'n/a'}\n"
+#             tags = (r.tags_json or "")[:100]  # Truncate tags
+#             resp += f"   Tags: {tags + ('...' if len(tags) == 100 else '')}\n\n"
+#
+#         return {"type": "detailed_resource_list_query", "response": resp}
+#
+#     except Exception as e:
+#         logger.error("Detailed resource list query error: %s", e)
+#         return {"type": "detailed_resource_list_query", "response": "Error fetching detailed resource list."}
+#
+#
+# # NEW  owner query ----------------------------------------------------
+# def handle_owner_query(q):
+#     m = re.search(r"owner\s+([A-Za-z]+\s+[A-Za-z]+)", q, re.I)
+#     if not m: return {"type": "owner_query", "response": "Please include an owner name."}
+#     owner = m.group(1)
+#     rows = get_resources_by_owner(owner)
+#     if not rows: return {"type": "owner_query", "response": f"No resources for {owner}."}
+#     res_ids = [r.resource_id for r in rows]
+#     bill = get_comprehensive_billing_data({"resource_ids": res_ids})
+#     total = sum(float(b["cost"]) for b in bill)
+#     svc = {}
+#     for b in bill: svc[b["service"]] = svc.get(b["service"], 0) + float(b["cost"])
+#     resp = f"Owner {owner}: {len(rows)} resources, spend ${total:,.2f}\n"
+#     if svc:
+#         resp += "Service spending:\n"
+#         for s, c in sorted(svc.items(), key=lambda x: x[1], reverse=True):
+#             resp += f"• {s}: ${c:,.2f}\n"
+#     resp += "\nResource IDs (env):\n"
+#     resp += "\n".join(f"• {r.resource_id} ({r.env or 'n/a'})" for r in rows[:10])
+#     return {"type": "owner_query", "response": resp}
+#
+#
+# # NEW  env query ------------------------------------------------------
+# def handle_env_query(q):
+#     env = re.search(r"\b(dev|test|prod|staging)\b", q, re.I).group(1)
+#     rows = get_resources_by_env(env)
+#     if not rows: return {"type": "env_query", "response": f"No resources in env '{env}'."}
+#     owners = {}
+#     for r in rows: owners.setdefault(r.owner or "Unassigned", []).append(r.resource_id)
+#     resp = f"Environment '{env}' – {len(rows)} resources, {len(owners)} owners\n"
+#     for o, ids in owners.items(): resp += f"• {o}: {len(ids)} resources\n"
+#     return {"type": "env_query", "response": resp}
+#
+#
+# # MODIFIED resource query – adds metadata -----------------------------
+# def handle_resource_query(q):
+#     rid = extract_resource_id(q)
+#     if not rid: return {"type": "resource_query", "response": "Provide a resource id (res-xxxx)."}
+#     data = get_complete_resource_data(rid)
+#     meta, bill = data["meta"], data["billing"]
+#     if meta is None and not bill:
+#         return {"type": "resource_query", "response": f"No data for {rid}."}
+#     resp = f"Resource {rid}\n\n"
+#     if meta:
+#         resp += "📋 Metadata\n"
+#         resp += f"• owner: {meta.owner or 'n/a'}\n"
+#         resp += f"• env  : {meta.env or 'n/a'}\n"
+#         tag = (meta.tags_json or "")[:120]
+#         resp += f"• tags : {tag + ('…' if len(tag) == 120 else '')}\n\n"
+#     if bill:
+#         total = sum(float(b['cost']) for b in bill)
+#         first = bill[0]
+#         resp += "💰 Billing\n"
+#         resp += f"• service: {first['service']}\n"
+#         resp += f"• region : {first['region']}\n"
+#         resp += f"• total  : ${total:,.2f} ({len(bill)} records)\n"
+#     return {"type": "resource_query", "response": resp}
+#
+#
+# # ───────────────────────────────────────────────────────────────
+# #  BUSINESS-HANDLERS  (restored exactly as before)
+# # ───────────────────────────────────────────────────────────────
+# def handle_count_query(question):
+#     ql = question.lower()
+#     try:
+#         s = SessionLocal()
+#         if "account" in ql:
+#             n = s.execute(select(func.count(distinct(models.Billing.account_id)))).scalar()
+#             return {"type": "count_query", "response": f"Total unique accounts: {n}"}
+#         if "resource" in ql:
+#             n = s.execute(select(func.count(distinct(models.Billing.resource_id)))).scalar()
+#             return {"type": "count_query", "response": f"Total unique resources: {n}"}
+#         if "service" in ql:
+#             n = s.execute(select(func.count(distinct(models.Billing.service)))).scalar()
+#             return {"type": "count_query", "response": f"Total unique services:  {n}"}
+#     finally:
+#         s.close()
+#     return {"type": "count_query", "response": "Specify account / resource / service to count."}
+#
+#
+# def handle_monthly_breakdown(question):
+#     svc = extract_service_filter(question)
+#     billing = get_comprehensive_billing_data({"service": svc} if svc else None)
+#     if not billing:
+#         txt = f" for {svc}" if svc else ""
+#         return {"type": "monthly_breakdown",
+#                 "response": f"No billing data{txt}."}
+#
+#     months, total = {}, 0
+#     for b in billing:
+#         m, c = b["invoice_month"], float(b["cost"])
+#         months[m] = months.get(m, 0) + c
+#         total += c
+#
+#     resp = f"Monthly breakdown{' for ' + svc if svc else ''} – total ${total:,.2f}\n"
+#     for m in sorted(months):
+#         pct = months[m] / total * 100
+#         resp += f"• {m}: ${months[m]:,.2f} ({pct:.1f}%)\n"
+#     return {"type": "monthly_breakdown", "response": resp, "billing_data": billing}
+#
+#
+# def handle_service_list_query(question):
+#     want_names = any(p in question.lower() for p in
+#                      ["only names", "just names", "names only", "list names", "without cost"])
+#     billing = get_comprehensive_billing_data()
+#     if not billing:
+#         return {"type": "service_list", "response": "No billing data."}
+#
+#     if want_names:
+#         svcs = sorted({b["service"] for b in billing if b["service"]})
+#         resp = "Services used:\n" + "\n".join(f"{i + 1}. {s}" for i, s in enumerate(svcs))
+#         return {"type": "service_list", "response": resp, "services": svcs}
+#
+#     by, total = {}, 0
+#     for b in billing:
+#         by[b["service"]] = by.get(b["service"], 0) + float(b["cost"])
+#         total += float(b["cost"])
+#
+#     resp = "Services with totals:\n"
+#     for i, (s, c) in enumerate(sorted(by.items(), key=lambda x: x[1], reverse=True), 1):
+#         resp += f"{i}. {s}: ${c:,.2f} ({(c / total) * 100:.1f}%)\n"
+#     return {"type": "service_list_detailed", "response": resp, "service_data": by}
+#
+#
+# # ───────────────────────────────────────────────────────────────
+# #  ACCOUNT + FINANCIAL  (restored handlers)
+# # ───────────────────────────────────────────────────────────────
+# def handle_account_query(question):
+#     account_id = extract_account_id(question)
+#     if not account_id:
+#         return {"type": "account_query",
+#                 "response": "Please include an account id like acct-1234."}
+#
+#     billing = get_comprehensive_billing_data({"account_id": account_id})
+#     if not billing:
+#         return {"type": "account_query",
+#                 "response": f"No billing rows for account {account_id}."}
+#
+#     total = sum(float(b["cost"]) for b in billing)
+#     svcs = {}
+#     months = {}
+#     for b in billing:
+#         svcs[b["service"]] = svcs.get(b["service"], 0) + float(b["cost"])
+#         months[b["invoice_month"]] = months.get(b["invoice_month"], 0) + float(b["cost"])
+#
+#     resp = f"Account {account_id} spent ${total:,.2f} across {len(billing)} records.\n"
+#     resp += "Service breakdown:\n"
+#     for s, c in sorted(svcs.items(), key=lambda x: x[1], reverse=True):
+#         resp += f"• {s}: ${c:,.2f}\n"
+#     if len(months) > 1:
+#         resp += "\nMonthly totals:\n"
+#         for m, c in sorted(months.items()):
+#             resp += f"• {m}: ${c:,.2f}\n"
+#     return {"type": "account_query", "response": resp, "billing_data": billing}
+#
+#
+# def handle_financial_query(question):
+#     svc = extract_service_filter(question)
+#     time = extract_time_filter(question)
+#     acc = extract_account_id(question)
+#     res = extract_resource_id(question)
+#
+#     filters = {}
+#     if svc: filters["service"] = svc
+#     if time:
+#         if time == "year_2025":
+#             filters["year"] = "2025"
+#         else:
+#             filters["month"] = time
+#     if acc: filters["account_id"] = acc
+#     if res: filters["resource_id"] = res
+#
+#     billing = get_comprehensive_billing_data(filters)
+#     if not billing:
+#         return {"type": "financial",
+#                 "response": "No billing rows match those filters."}
+#
+#     total = sum(float(b["cost"]) for b in billing)
+#     resp = f"{len(billing)} transactions found — total ${total:,.2f}.\n"
+#
+#     if not svc:
+#         bysvc = {}
+#         for b in billing:
+#             bysvc[b["service"]] = bysvc.get(b["service"], 0) + float(b["cost"])
+#         if len(bysvc) > 1:
+#             resp += "Service breakdown:\n"
+#             for s, c in sorted(bysvc.items(), key=lambda x: x[1], reverse=True)[:5]:
+#                 pct = (c / total) * 100
+#                 resp += f"• {s}: ${c:,.2f} ({pct:.1f}%)\n"
+#
+#     return {"type": "financial", "response": resp, "billing_data": billing}
+#
+#
+# # ───────────────────────────────────────────────────────────────
+#
+# # ────────────────────────────────────────────────────────────────────
+#
+#
+# # ╔════════════ ROUTER ════════════╗
+# def process_query(q):
+#     t = classify_query(q)
+#     if t == "greeting": return handle_greeting()
+#     if t == "unclear": return handle_unclear()
+#
+#     # NEW handlers
+#     if t == "schema_query": return handle_schema_query(q)
+#     if t == "resource_list_query": return handle_resource_list_query(q)
+#     if t == "detailed_resource_list_query": return handle_detailed_resource_list_query(q)
+#
+#     # Existing handlers
+#     if t == "owner_query": return handle_owner_query(q)
+#     if t == "env_query": return handle_env_query(q)
+#     if t == "resource_query": return handle_resource_query(q)
+#     if t == "account_query": return handle_account_query(q)
+#     if t == "count_query": return handle_count_query(q)
+#     if t == "monthly_breakdown": return handle_monthly_breakdown(q)
+#     if t == "service_list": return handle_service_list_query(q)
+#     if t == "financial": return handle_financial_query(q)
+#
+#     return handle_unclear()
+#
+#
+# # ╔════════════ DISPLAY ═══════════╗
+# def display_response(r):
+#     if not r: return
+#     simple = {'greeting', 'unclear', 'service_list', 'count_query', 'owner_query', 'env_query', 'schema_query',
+#               'resource_list_query', 'detailed_resource_list_query'}
+#     if r['type'] in simple:
+#         print("\n💬", r['response'])
+#         return
+#     print("\n" + ("=" * 60))
+#     print(r['response'])
+#
+#
+# # ╔════════════ MAIN LOOP ═════════╗
+# if __name__ == "__main__":
+#     print("🚀 FinBot ready")
+#     try:
+#         while True:
+#             q = input("\nAsk 💬 > ").strip()
+#             if q.lower() in {"exit", "quit"}: break
+#             display_response(process_query(q))
+#     except KeyboardInterrupt:
+#         pass
