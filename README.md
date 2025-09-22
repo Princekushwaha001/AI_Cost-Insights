@@ -98,13 +98,13 @@ The API will be available at `http://localhost:8000`
 
 ```bash
 # Get cost breakdown by service
-> What are my costs by service this month?
+> What is total cost of AI service?
 
 # Find resources by owner
-> Show me all resources owned by John Doe
+> List down all the service we used.
 
 # Get cost trends
-> How have my compute costs changed over the last 3 months?
+> Give all the details of resource id res-822fe7a8.
 ```
 
 ### API Endpoints
